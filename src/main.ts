@@ -13,11 +13,10 @@ async function run(): Promise<void> {
     core.debug(`Debug test`)
 
     // const stdout: string[] = []
-    const options = {
-    }
+    const options = {}
     const gitPath = await io.which('git', true)
 
-    const exitCode = await exec.exec(`"${gitPath}"`, ["status"], options)
+    const exitCode = await exec.exec(`"${gitPath}"`, ['status'], options)
     //result.stdout = stdout.join('')
 
     core.debug(exitCode.toString())
