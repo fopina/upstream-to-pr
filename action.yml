@@ -1,11 +1,18 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Upstream to PR'
+description: 'Fetch upstream branch and open PR (if any changes)'
+author: 'Filipe Pina'
 inputs:
-  milliseconds: # change this
+  token:
+    description: 'github token used to create the pull request'
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+  upstream-repository:
+    description: 'git/http URL for the upstream project'
+    required: true
+  upstream-branch:
+    description: 'upstream branch of the upstream project to monitor'
+    required: true
+    default: main
+
 runs:
   using: 'node16'
   main: 'dist/index.js'
