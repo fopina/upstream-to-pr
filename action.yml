@@ -1,22 +1,11 @@
-name: 'Upstream to PR'
-description: 'Fetch upstream branch and open PR (if any changes)'
+name: 'Your name here'
+description: 'Provide a description here'
+author: 'Your name or organization here'
 inputs:
-  token:
-    description: 'github token used to create the pull request'
+  milliseconds: # change this
     required: true
-  upstream-repository:
-    description: 'git/http URL for the upstream project'
-    required: true
-  upstream-branch:
-    description: 'upstream branch of the upstream project to monitor'
-    required: true
-    default: main
-
+    description: 'input description here'
+    default: 'default value if applicable'
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
-  args:
-    - ${{ inputs.upstream-repository }}
-    - ${{ inputs.token }}
-    - --branch
-    - ${{ inputs.upstream-branch }}
+  using: 'node16'
+  main: 'dist/index.js'
