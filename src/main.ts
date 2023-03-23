@@ -18,7 +18,7 @@ async function run(): Promise<void> {
 
     // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
     core.debug(`Debug test`)
-    execGit(['fetch', upstreamRepository, upstreamBranch])
+    execGit(['fetch', upstreamRepository, `${upstreamBranch}x`])
     core.debug(`Passed`)
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
