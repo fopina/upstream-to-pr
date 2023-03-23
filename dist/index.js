@@ -41,25 +41,52 @@ const io = __importStar(__nccwpck_require__(436));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            // const token: string = core.getInput('token')
+            //const token: string = core.getInput('token')
             const upstreamRepository = core.getInput('upstream-repository');
-            // const upstreamBranch: string = core.getInput('upstream-branch')
+            const upstreamBranch = core.getInput('upstream-branch');
+            // these environment variables MUST be defined
+            //const currentBranch = process.env.GITHUB_REF_NAME
+            //const thisRepo = process.env.GITHUB_REPOSITORY
+            core.info(`Checking ${upstreamRepository}@${upstreamBranch} for changes ...`);
             // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
-            core.info(`Waiting ${upstreamRepository} milliseconds ...`);
             core.debug(`Debug test`);
-            // const stdout: string[] = []
-            const options = {};
-            const gitPath = yield io.which('git', true);
-            const exitCode = yield exec.exec(`"${gitPath}"`, ["status"], options);
-            //result.stdout = stdout.join('')
-            core.debug(exitCode.toString());
-            //core.debug(stdout)
+            execGit(["fetch", upstreamRepository, upstreamBranch]);
         }
         catch (error) {
             if (error instanceof Error)
                 core.setFailed(error.message);
         }
     });
+}
+function execGit(args, allowAllExitCodes = false, silent = false, customListeners = {}) {
+    return __awaiter(this, void 0, void 0, function* () {
+        // borrowed from actions/checkout - https://github.com/actions/checkout/blob/main/src/git-command-manager.ts
+        const gitPath = yield io.which('git', true);
+        const result = new GitOutput();
+        const defaultListener = {
+            stdout: (data) => {
+                stdout.push(data.toString());
+            }
+        };
+        const mergedListeners = Object.assign(Object.assign({}, defaultListener), customListeners);
+        const stdout = [];
+        const options = {
+            silent,
+            ignoreReturnCode: allowAllExitCodes,
+            listeners: mergedListeners
+        };
+        result.exitCode = yield exec.exec(`"${gitPath}"`, args, options);
+        result.stdout = stdout.join('');
+        core.debug(result.exitCode.toString());
+        core.debug(result.stdout);
+        return result;
+    });
+}
+class GitOutput {
+    constructor() {
+        this.stdout = '';
+        this.exitCode = 0;
+    }
 }
 run();
 
