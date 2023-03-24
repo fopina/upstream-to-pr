@@ -21,4 +21,6 @@ jobs:
       - uses: actions/checkout@v2
       - uses: ./
         with:
-          milliseconds: 1000
+          token: 'not used'
+          upstream-repository: .
+          upstream-branch: ${GITHUB_REF}

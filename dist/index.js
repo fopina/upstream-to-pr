@@ -37,37 +37,40 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
-const io = __importStar(__nccwpck_require__(7436));
 const github = __importStar(__nccwpck_require__(5438));
+const io = __importStar(__nccwpck_require__(7436));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const token = core.getInput('token');
-            const upstreamRepository = core.getInput('upstream-repository');
-            const upstreamBranch = core.getInput('upstream-branch');
+            const token = core.getInput('token', { required: true });
+            const upstreamRepository = core.getInput('upstream-repository', {
+                required: true
+            });
+            const upstreamBranch = core.getInput('upstream-branch') || 'main';
             const context = github.context;
             core.info(`Checking ${upstreamRepository}@${upstreamBranch} for changes ...`);
             yield execGit(['fetch', upstreamRepository, upstreamBranch]);
-            const revList = (yield execGit(["rev-list", `${context.ref}..FETCH_HEAD`])).stdout.trim();
+            const revList = (yield execGit(['rev-list', `${context.ref}..FETCH_HEAD`])).stdout.trim();
             // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
             core.debug(`revList: [${revList}]`);
             if (!revList) {
-                core.info("Nothing new here, move along.");
+                core.info('Nothing new here, move along.');
                 return;
             }
-            const revHead = (yield execGit(["rev-parse", "--short", "FETCH_HEAD"])).stdout.trim();
+            const revHead = (yield execGit(['rev-parse', '--short', 'FETCH_HEAD'])).stdout.trim();
             const branch = `upstream-to-pr/rev-${revHead}`;
             // check if branch already exists - this require a clone with full fetch depth
             // `fetch-depth: 0` in github checkout action
-            const branches = yield execGit(["branch", "-a"]);
-            if (branches.stdout.indexOf(`${branch}\n`) >= 0) {
-                core.info("Branch already exists, skipping");
+            const branches = yield execGit(['branch', '-a']);
+            if (branches.stdout.includes(`${branch}\n`)) {
+                core.info('Branch already exists, skipping');
                 return;
             }
-            yield execGit(["checkout", "-b", branch, "FETCH_HEAD"]);
-            yield execGit(["push", "-u", "origin", branch]);
+            yield execGit(['checkout', '-b', branch, 'FETCH_HEAD']);
+            yield execGit(['push', '-u', 'origin', branch]);
             const octokit = github.getOctokit(token);
             const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream revision ${revHead}`, head: branch, base: context.ref, body: `Auto-generated pull request.` }));
+            core.info(`Pull request created: ${pullRequest.url}`);
         }
         catch (error) {
             if (error instanceof Error)

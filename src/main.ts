@@ -1,52 +1,58 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
-import * as io from '@actions/io'
 import * as github from '@actions/github'
+import * as io from '@actions/io'
 
 async function run(): Promise<void> {
   try {
-    const token: string = core.getInput('token')
-    const upstreamRepository: string = core.getInput('upstream-repository')
-    const upstreamBranch: string = core.getInput('upstream-branch')
-    const context = github.context;
+    const token: string = core.getInput('token', {required: true})
+    const upstreamRepository: string = core.getInput('upstream-repository', {
+      required: true
+    })
+    const upstreamBranch: string = core.getInput('upstream-branch') || 'main'
+    const context = github.context
 
     core.info(
       `Checking ${upstreamRepository}@${upstreamBranch} for changes ...`
     )
 
     await execGit(['fetch', upstreamRepository, upstreamBranch])
-    
-    const revList = (await execGit(["rev-list", `${context.ref}..FETCH_HEAD`])).stdout.trim()
+
+    const revList = (
+      await execGit(['rev-list', `${context.ref}..FETCH_HEAD`])
+    ).stdout.trim()
     // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
     core.debug(`revList: [${revList}]`)
     if (!revList) {
-      core.info("Nothing new here, move along.")
+      core.info('Nothing new here, move along.')
       return
     }
 
-    const revHead = (await execGit(["rev-parse", "--short", "FETCH_HEAD"])).stdout.trim()
+    const revHead = (
+      await execGit(['rev-parse', '--short', 'FETCH_HEAD'])
+    ).stdout.trim()
     const branch = `upstream-to-pr/rev-${revHead}`
 
     // check if branch already exists - this require a clone with full fetch depth
     // `fetch-depth: 0` in github checkout action
-    const branches = await execGit(["branch", "-a"])
-    if (branches.stdout.indexOf(`${branch}\n`) >= 0) {
-      core.info("Branch already exists, skipping")
+    const branches = await execGit(['branch', '-a'])
+    if (branches.stdout.includes(`${branch}\n`)) {
+      core.info('Branch already exists, skipping')
       return
     }
 
-    await execGit(["checkout", "-b", branch, "FETCH_HEAD"])
-    await execGit(["push", "-u", "origin", branch])
+    await execGit(['checkout', '-b', branch, 'FETCH_HEAD'])
+    await execGit(['push', '-u', 'origin', branch])
 
-    
     const octokit = github.getOctokit(token)
-    const { data: pullRequest } = await octokit.rest.pulls.create({
+    const {data: pullRequest} = await octokit.rest.pulls.create({
       ...context.repo,
       title: `Upstream revision ${revHead}`,
       head: branch,
       base: context.ref,
       body: `Auto-generated pull request.`
-    });
+    })
+    core.info(`Pull request created: ${pullRequest.url}`)
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
