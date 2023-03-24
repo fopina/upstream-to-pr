@@ -28,7 +28,8 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.PAT }}
-      - uses: fopina/upstream-to-pr@main
+
+      - uses: fopina/upstream-to-pr@v1
         with:
           token: ${{ secrets.PAT }}
           upstream-repository: https://github.com/surface-security/surface

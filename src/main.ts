@@ -9,16 +9,11 @@ async function run(): Promise<void> {
     const upstreamRepository: string = core.getInput('upstream-repository', {
       required: true
     })
-    let upstreamBranch: string = core.getInput('upstream-branch') || 'main'
-    const context = github.context
-    let currentBranch = context.ref || ''
-
-    if (upstreamBranch.startsWith('refs/')) {
-      upstreamBranch = upstreamBranch.substring(5)
-    }
-    if (currentBranch.startsWith('refs/')) {
-      currentBranch = currentBranch.substring(5)
-    }
+    const upstreamBranch: string = core.getInput('upstream-branch') || 'main'
+    // github.context does not expose REF_NAME nor HEAD_REF, just use env...
+    // try GITHUB_HEAD_REF (set if it is a PR) and fallback to GITHUB_REF_NAME
+    const currentBranch =
+      process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || ''
 
     core.info(
       `Checking ${upstreamRepository}@${upstreamBranch} for changes ...`
@@ -27,7 +22,7 @@ async function run(): Promise<void> {
     await execGit(['fetch', upstreamRepository, upstreamBranch])
 
     const revList = (
-      await execGit(['rev-list', `${currentBranch}..FETCH_HEAD`])
+      await execGit(['rev-list', `HEAD..FETCH_HEAD`])
     ).stdout.trim()
     // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
     core.debug(`revList: [${revList}]`)
@@ -52,6 +47,7 @@ async function run(): Promise<void> {
     await execGit(['checkout', '-b', branch, 'FETCH_HEAD'])
     await execGit(['push', '-u', 'origin', branch])
 
+    const context = github.context
     const octokit = github.getOctokit(token)
     const {data: pullRequest} = await octokit.rest.pulls.create({
       ...context.repo,
