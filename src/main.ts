@@ -22,7 +22,7 @@ async function run(): Promise<void> {
     await execGit(['fetch', upstreamRepository, upstreamBranch])
 
     const revList = (
-      await execGit(['rev-list', `${currentBranch}..FETCH_HEAD`])
+      await execGit(['rev-list', `HEAD..FETCH_HEAD`])
     ).stdout.trim()
     // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
     core.debug(`revList: [${revList}]`)
