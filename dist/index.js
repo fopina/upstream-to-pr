@@ -46,15 +46,10 @@ function run() {
             const upstreamRepository = core.getInput('upstream-repository', {
                 required: true
             });
-            let upstreamBranch = core.getInput('upstream-branch') || 'main';
-            const context = github.context;
-            let currentBranch = context.ref || '';
-            if (upstreamBranch.startsWith('refs/')) {
-                upstreamBranch = upstreamBranch.substring(5);
-            }
-            if (currentBranch.startsWith('refs/')) {
-                currentBranch = currentBranch.substring(5);
-            }
+            const upstreamBranch = core.getInput('upstream-branch') || 'main';
+            // github.context does not expose REF_NAME nor HEAD_REF, just use env...
+            // try GITHUB_HEAD_REF (set if it is a PR) and fallback to GITHUB_REF_NAME
+            const currentBranch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || '';
             core.info(`Checking ${upstreamRepository}@${upstreamBranch} for changes ...`);
             yield execGit(['fetch', upstreamRepository, upstreamBranch]);
             const revList = (yield execGit(['rev-list', `${currentBranch}..FETCH_HEAD`])).stdout.trim();
@@ -75,6 +70,7 @@ function run() {
             }
             yield execGit(['checkout', '-b', branch, 'FETCH_HEAD']);
             yield execGit(['push', '-u', 'origin', branch]);
+            const context = github.context;
             const octokit = github.getOctokit(token);
             const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream revision ${revHead}`, head: branch, base: currentBranch, body: `Auto-generated pull request.` }));
             core.info(`Pull request created: ${pullRequest.url}`);
