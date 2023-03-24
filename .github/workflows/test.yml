@@ -35,4 +35,4 @@ jobs:
           # use itself (local repository and same branch) so it's always expected to complete successfully
           # (with message `Nothing new here, move along.`)
           upstream-repository: .
-          upstream-branch: ${{ github.head_ref || github.ref_name }}
+          upstream-branch: HEAD
