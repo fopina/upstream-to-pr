@@ -11,9 +11,13 @@ async function run(): Promise<void> {
     })
     let upstreamBranch: string = core.getInput('upstream-branch') || 'main'
     const context = github.context
+    let currentBranch = context.ref || ''
 
     if (upstreamBranch.startsWith('refs/')) {
       upstreamBranch = upstreamBranch.substring(5)
+    }
+    if (currentBranch.startsWith('refs/')) {
+      currentBranch = currentBranch.substring(5)
     }
 
     core.info(

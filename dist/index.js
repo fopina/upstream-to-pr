@@ -48,8 +48,12 @@ function run() {
             });
             let upstreamBranch = core.getInput('upstream-branch') || 'main';
             const context = github.context;
+            let currentBranch = context.ref || '';
             if (upstreamBranch.startsWith('refs/')) {
                 upstreamBranch = upstreamBranch.substring(5);
+            }
+            if (currentBranch.startsWith('refs/')) {
+                currentBranch = currentBranch.substring(5);
             }
             core.info(`Checking ${upstreamRepository}@${upstreamBranch} for changes ...`);
             yield execGit(['fetch', upstreamRepository, upstreamBranch]);
