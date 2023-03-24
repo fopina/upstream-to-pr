@@ -9,8 +9,12 @@ async function run(): Promise<void> {
     const upstreamRepository: string = core.getInput('upstream-repository', {
       required: true
     })
-    const upstreamBranch: string = core.getInput('upstream-branch') || 'main'
+    let upstreamBranch: string = core.getInput('upstream-branch') || 'main'
     const context = github.context
+
+    if (upstreamBranch.startsWith('refs/')) {
+      upstreamBranch = upstreamBranch.substring(5)
+    }
 
     core.info(
       `Checking ${upstreamRepository}@${upstreamBranch} for changes ...`

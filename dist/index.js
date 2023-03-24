@@ -46,8 +46,11 @@ function run() {
             const upstreamRepository = core.getInput('upstream-repository', {
                 required: true
             });
-            const upstreamBranch = core.getInput('upstream-branch') || 'main';
+            let upstreamBranch = core.getInput('upstream-branch') || 'main';
             const context = github.context;
+            if (upstreamBranch.startsWith('refs/')) {
+                upstreamBranch = upstreamBranch.substring(5);
+            }
             core.info(`Checking ${upstreamRepository}@${upstreamBranch} for changes ...`);
             yield execGit(['fetch', upstreamRepository, upstreamBranch]);
             const revList = (yield execGit(['rev-list', `${context.ref}..FETCH_HEAD`])).stdout.trim();
