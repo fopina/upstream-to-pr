@@ -52,7 +52,7 @@ function run() {
             const currentBranch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || '';
             core.info(`Checking ${upstreamRepository}@${upstreamBranch} for changes ...`);
             yield execGit(['fetch', upstreamRepository, upstreamBranch]);
-            const revList = (yield execGit(['rev-list', `${currentBranch}..FETCH_HEAD`])).stdout.trim();
+            const revList = (yield execGit(['rev-list', `HEAD..FETCH_HEAD`])).stdout.trim();
             // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
             core.debug(`revList: [${revList}]`);
             if (!revList) {
