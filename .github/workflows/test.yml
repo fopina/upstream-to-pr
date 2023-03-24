@@ -23,4 +23,4 @@ jobs:
         with:
           token: 'not used'
           upstream-repository: .
-          upstream-branch: ${GITHUB_REF}
+          upstream-branch: ${{ github.ref }}
