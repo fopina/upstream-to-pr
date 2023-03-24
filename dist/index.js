@@ -57,7 +57,7 @@ function run() {
             }
             core.info(`Checking ${upstreamRepository}@${upstreamBranch} for changes ...`);
             yield execGit(['fetch', upstreamRepository, upstreamBranch]);
-            const revList = (yield execGit(['rev-list', `${context.ref}..FETCH_HEAD`])).stdout.trim();
+            const revList = (yield execGit(['rev-list', `${currentBranch}..FETCH_HEAD`])).stdout.trim();
             // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
             core.debug(`revList: [${revList}]`);
             if (!revList) {
@@ -76,7 +76,7 @@ function run() {
             yield execGit(['checkout', '-b', branch, 'FETCH_HEAD']);
             yield execGit(['push', '-u', 'origin', branch]);
             const octokit = github.getOctokit(token);
-            const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream revision ${revHead}`, head: branch, base: context.ref, body: `Auto-generated pull request.` }));
+            const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream revision ${revHead}`, head: branch, base: currentBranch, body: `Auto-generated pull request.` }));
             core.info(`Pull request created: ${pullRequest.url}`);
         }
         catch (error) {

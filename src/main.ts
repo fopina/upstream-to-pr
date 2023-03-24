@@ -27,7 +27,7 @@ async function run(): Promise<void> {
     await execGit(['fetch', upstreamRepository, upstreamBranch])
 
     const revList = (
-      await execGit(['rev-list', `${context.ref}..FETCH_HEAD`])
+      await execGit(['rev-list', `${currentBranch}..FETCH_HEAD`])
     ).stdout.trim()
     // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
     core.debug(`revList: [${revList}]`)
@@ -57,7 +57,7 @@ async function run(): Promise<void> {
       ...context.repo,
       title: `Upstream revision ${revHead}`,
       head: branch,
-      base: context.ref,
+      base: currentBranch,
       body: `Auto-generated pull request.`
     })
     core.info(`Pull request created: ${pullRequest.url}`)
