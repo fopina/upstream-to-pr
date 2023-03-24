@@ -28,7 +28,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.PAT }}
-      - runs: git branch -a
+
       - uses: fopina/upstream-to-pr@v1
         with:
           token: ${{ secrets.PAT }}
