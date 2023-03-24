@@ -1,5 +1,6 @@
 name: 'Upstream to PR'
 description: 'Fetch upstream branch and open PR (if any changes)'
+author: 'Filipe Pina'
 inputs:
   token:
     description: 'github token used to create the pull request'
@@ -13,10 +14,5 @@ inputs:
     default: main
 
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
-  args:
-    - ${{ inputs.upstream-repository }}
-    - ${{ inputs.token }}
-    - --branch
-    - ${{ inputs.upstream-branch }}
+  using: 'node16'
+  main: 'dist/index.js'
