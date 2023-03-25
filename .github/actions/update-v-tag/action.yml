@@ -1,0 +1,7 @@
+name: 'Update major v tag'
+description: 'Update major v tag when new tag is pushed'
+author: 'Filipe Pina'
+
+runs:
+  using: 'node16'
+  main: 'index.js'
