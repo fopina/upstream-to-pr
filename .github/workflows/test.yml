@@ -21,6 +21,13 @@ jobs:
           npm install
       - run: |
           npm run all
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+
   test: # make sure the action works on a clean machine without building
     runs-on: ubuntu-latest
     steps:

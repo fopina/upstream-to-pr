@@ -10,7 +10,7 @@
     "format-check": "prettier --check '**/*.ts'",
     "lint": "eslint src/**/*.ts",
     "package": "ncc build --source-map --license licenses.txt",
-    "test": "jest --coverage",
+    "test": "jest",
     "all": "npm run build && npm run format && npm run lint && npm run package && npm test"
   },
   "repository": {
@@ -44,5 +44,19 @@
     "prettier": "2.8.7",
     "ts-jest": "^27.1.2",
     "typescript": "^4.9.5"
+  },
+  "jest": {
+    "clearMocks": true,
+    "moduleFileExtensions": ["js", "ts"],
+    "testMatch": ["**/*.test.ts"],
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "verbose": true,
+    "collectCoverage": true,
+    "coverageReporters": [
+      "text",
+      "cobertura"
+    ]
   }
 }
