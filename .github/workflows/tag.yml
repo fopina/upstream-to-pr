@@ -6,6 +6,8 @@ on:
       - main
       - 'releases/*'
 
+permissions: write-all
+
 jobs:
   push_tag:
     runs-on: ubuntu-latest
