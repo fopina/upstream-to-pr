@@ -1,7 +1,15 @@
 const { execFile } = require('node:child_process');
-const child = execFile('git', ['tag', '-l'], (error, stdout, stderr) => {
+
+execFile('git', ['tag', '-f', 'vX'], (error, stdout, stderr) => {
   if (error) {
     throw error;
   }
   console.log(stdout);
 });
+
+execFile('git', ['push', '-f', 'origin', 'vX'], (error, stdout, stderr) => {
+    if (error) {
+      throw error;
+    }
+    console.log(stdout);
+  });
