@@ -1,0 +1,18 @@
+name: 'update-v-tag'
+on:
+  push:
+    tags:
+      - v1.*
+
+permissions:
+  contents: write
+
+jobs:
+  push_tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: update v1 to ${{  github.ref_name }}
+        run: |
+          git tag -f v1
+          git push -f origin v1
