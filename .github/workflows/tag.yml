@@ -2,6 +2,8 @@ name: 'update-v-tag'
 on:
   pull_request:
   push:
+    tags:
+      - v1.*
     branches:
       - main
       - 'releases/*'
@@ -14,6 +16,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/update-v-tag
+      - run: 'echo "Tag name from github.ref_name: ${{  github.ref_name }}"'
