@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import * as up2pr from './upstream-to-pr'
+import {UpstreamToPr} from './upstream-to-pr'
 
 async function run(): Promise<void> {
   try {
@@ -13,7 +13,12 @@ async function run(): Promise<void> {
     const currentBranch =
       process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || ''
 
-    await up2pr.run(upstreamRepository, upstreamBranch, token, currentBranch)
+    await new UpstreamToPr().run(
+      upstreamRepository,
+      upstreamBranch,
+      token,
+      currentBranch
+    )
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }

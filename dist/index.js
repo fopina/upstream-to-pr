@@ -40,7 +40,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
-const up2pr = __importStar(__nccwpck_require__(2511));
+const upstream_to_pr_1 = __nccwpck_require__(2511);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -52,7 +52,7 @@ function run() {
             // github.context does not expose REF_NAME nor HEAD_REF, just use env...
             // try GITHUB_HEAD_REF (set if it is a PR) and fallback to GITHUB_REF_NAME
             const currentBranch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || '';
-            yield up2pr.run(upstreamRepository, upstreamBranch, token, currentBranch);
+            yield new upstream_to_pr_1.UpstreamToPr().run(upstreamRepository, upstreamBranch, token, currentBranch);
         }
         catch (error) {
             if (error instanceof Error)
@@ -103,64 +103,71 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.run = void 0;
+exports.UpstreamToPr = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 const github = __importStar(__nccwpck_require__(5438));
 const io = __importStar(__nccwpck_require__(7436));
-function run(upstreamRepository, upstreamBranch, token, currentBranch) {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.info(`Checking ${upstreamRepository}@${upstreamBranch} for changes ...`);
-        yield execGit(['fetch', upstreamRepository, upstreamBranch]);
-        const revList = (yield execGit(['rev-list', `HEAD..FETCH_HEAD`])).stdout.trim();
-        // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
-        core.debug(`revList: [${revList}]`);
-        if (!revList) {
-            core.info('Nothing new here, move along.');
-            return;
-        }
-        const revHead = (yield execGit(['rev-parse', '--short', 'FETCH_HEAD'])).stdout.trim();
-        const branch = `upstream-to-pr/rev-${revHead}`;
-        // check if branch already exists - this require a clone with full fetch depth
-        // `fetch-depth: 0` in github checkout action
-        const branches = yield execGit(['branch', '-a']);
-        if (branches.stdout.includes(`${branch}\n`)) {
-            core.info('Branch already exists, skipping');
-            return;
-        }
-        yield execGit(['checkout', '-b', branch, 'FETCH_HEAD']);
-        yield execGit(['push', '-u', 'origin', branch]);
-        const context = github.context;
-        const octokit = github.getOctokit(token);
-        const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream revision ${revHead}`, head: branch, base: currentBranch, body: `Auto-generated pull request.` }));
-        core.info(`Pull request created: ${pullRequest.url}`);
-    });
-}
-exports.run = run;
-function execGit(args, allowAllExitCodes = false, silent = false, customListeners = {}) {
-    return __awaiter(this, void 0, void 0, function* () {
-        // borrowed from actions/checkout - https://github.com/actions/checkout/blob/main/src/git-command-manager.ts
-        const gitPath = yield io.which('git', true);
-        const result = new GitOutput();
-        const defaultListener = {
-            stdout: (data) => {
-                stdout.push(data.toString());
+class UpstreamToPr {
+    constructor() {
+        this.gitPath = '';
+    }
+    run(upstreamRepository, upstreamBranch, token, currentBranch) {
+        return __awaiter(this, void 0, void 0, function* () {
+            core.info(`Checking ${upstreamRepository}@${upstreamBranch} for changes...`);
+            yield this.execGit(['fetch', upstreamRepository, upstreamBranch]);
+            const revList = (yield this.execGit(['rev-list', `HEAD..FETCH_HEAD`])).stdout.trim();
+            // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
+            core.debug(`revList: [${revList}]`);
+            if (!revList) {
+                core.info('Nothing new here, move along.');
+                return;
             }
-        };
-        const mergedListeners = Object.assign(Object.assign({}, defaultListener), customListeners);
-        const stdout = [];
-        const options = {
-            silent,
-            ignoreReturnCode: allowAllExitCodes,
-            listeners: mergedListeners
-        };
-        result.exitCode = yield exec.exec(`"${gitPath}"`, args, options);
-        result.stdout = stdout.join('');
-        core.debug(result.exitCode.toString());
-        core.debug(result.stdout);
-        return result;
-    });
+            const revHead = (yield this.execGit(['rev-parse', '--short', 'FETCH_HEAD'])).stdout.trim();
+            const branch = `upstream-to-pr/rev-${revHead}`;
+            // check if branch already exists - this require a clone with full fetch depth
+            // `fetch-depth: 0` in github checkout action
+            const branches = yield this.execGit(['branch', '-a']);
+            if (branches.stdout.includes(`${branch}\n`)) {
+                core.info('Branch already exists, skipping.');
+                return;
+            }
+            yield this.execGit(['checkout', '-b', branch, 'FETCH_HEAD']);
+            yield this.execGit(['push', '-u', 'origin', branch]);
+            const context = github.context;
+            const octokit = github.getOctokit(token);
+            const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream revision ${revHead}`, head: branch, base: currentBranch, body: `Auto-generated pull request.` }));
+            core.info(`Pull request created: ${pullRequest.url}.`);
+        });
+    }
+    execGit(args, allowAllExitCodes = false, silent = false, customListeners = {}) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // borrowed from actions/checkout - https://github.com/actions/checkout/blob/main/src/git-command-manager.ts
+            if (!this.gitPath) {
+                this.gitPath = yield io.which('git', true);
+            }
+            const result = new GitOutput();
+            const defaultListener = {
+                stdout: (data) => {
+                    stdout.push(data.toString());
+                }
+            };
+            const mergedListeners = Object.assign(Object.assign({}, defaultListener), customListeners);
+            const stdout = [];
+            const options = {
+                silent,
+                ignoreReturnCode: allowAllExitCodes,
+                listeners: mergedListeners
+            };
+            result.exitCode = yield exec.exec(`"${this.gitPath}"`, args, options);
+            result.stdout = stdout.join('');
+            core.debug(result.exitCode.toString());
+            core.debug(result.stdout);
+            return result;
+        });
+    }
 }
+exports.UpstreamToPr = UpstreamToPr;
 class GitOutput {
     constructor() {
         this.stdout = '';
