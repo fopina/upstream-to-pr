@@ -1,15 +1,50 @@
-# upstream-topr
+# upstream-to-pr
 
-README WIP
+Yet another action to keep your fork in sync with upstream.
 
-## Example Workflow
+Why? Most I could find would either:
+*  `--hard-reset` main branch with the upstream one (hey, it's a fork...!)
+* merge upstream immediately (or try to) lacking conflict resolution
 
-This example will daily check https://github.com/surface-security/surface `main` branch and, if latest commit is not part of current tree, it will open a pull request in the current project/fork.
+This one just fetches upstream branch (default to `main`) and pushes it to your fork as a new branch.  
+It doesn't try to merge.  
+It doesn't replace anything.  
+It will open a pull-request and Github UI will allow you to merge it and resolve (simple) conflicts.
 
-Pull request will be the exact upstream branch without any merging strategy applied, allowing full review in Github UI (or CLI for more complex conflicts).
+To open the pull request, standard action `GITHUB_TOKEN` is not enough, so personal access token with enough access needs to be provided.
 
-Standard action `GITHUB_TOKEN` is not allow to open pull requests, so you need to setup a personal access token (`PAT`) in the repository secrets.
+As it inspects target branch history (in your fork) to check if there is anything new in upstream, it requires a full checkout: that means `full-depth: 0` with `actions/checkout`
 
+
+
+## Usage
+
+See [action.yml](action.yml)
+
+### Basic
+
+```yaml
+- uses: fopina/upstream-to-pr@v1
+  with:    
+    token: ${{ secrets.PAT }}
+    upstream-repository: https://github.com/surface-security/surface
+```
+
+### Other branch
+
+```yaml
+- uses: fopina/upstream-to-pr@v1
+  with:    
+    token: ${{ secrets.PAT }}
+    upstream-repository: https://github.com/surface-security/surface
+    upstream-branch: develop
+```
+
+## Scenarios
+
+### Daily check upstream
+
+This example will check https://github.com/surface-security/surface `main` branch daily. Also allows for manual/API triggered checks (`workflow_dispatch`).
 
 ```yaml
 name: upstream to PR
