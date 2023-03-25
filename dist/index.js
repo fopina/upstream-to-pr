@@ -8,7 +8,11 @@ require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -36,9 +40,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
-const exec = __importStar(__nccwpck_require__(1514));
-const github = __importStar(__nccwpck_require__(5438));
-const io = __importStar(__nccwpck_require__(7436));
+const up2pr = __importStar(__nccwpck_require__(2511));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -50,30 +52,7 @@ function run() {
             // github.context does not expose REF_NAME nor HEAD_REF, just use env...
             // try GITHUB_HEAD_REF (set if it is a PR) and fallback to GITHUB_REF_NAME
             const currentBranch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || '';
-            core.info(`Checking ${upstreamRepository}@${upstreamBranch} for changes ...`);
-            yield execGit(['fetch', upstreamRepository, upstreamBranch]);
-            const revList = (yield execGit(['rev-list', `HEAD..FETCH_HEAD`])).stdout.trim();
-            // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
-            core.debug(`revList: [${revList}]`);
-            if (!revList) {
-                core.info('Nothing new here, move along.');
-                return;
-            }
-            const revHead = (yield execGit(['rev-parse', '--short', 'FETCH_HEAD'])).stdout.trim();
-            const branch = `upstream-to-pr/rev-${revHead}`;
-            // check if branch already exists - this require a clone with full fetch depth
-            // `fetch-depth: 0` in github checkout action
-            const branches = yield execGit(['branch', '-a']);
-            if (branches.stdout.includes(`${branch}\n`)) {
-                core.info('Branch already exists, skipping');
-                return;
-            }
-            yield execGit(['checkout', '-b', branch, 'FETCH_HEAD']);
-            yield execGit(['push', '-u', 'origin', branch]);
-            const context = github.context;
-            const octokit = github.getOctokit(token);
-            const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream revision ${revHead}`, head: branch, base: currentBranch, body: `Auto-generated pull request.` }));
-            core.info(`Pull request created: ${pullRequest.url}`);
+            yield up2pr.run(upstreamRepository, upstreamBranch, token, currentBranch);
         }
         catch (error) {
             if (error instanceof Error)
@@ -81,6 +60,83 @@ function run() {
         }
     });
 }
+run();
+
+
+/***/ }),
+
+/***/ 2511:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.run = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const exec = __importStar(__nccwpck_require__(1514));
+const github = __importStar(__nccwpck_require__(5438));
+const io = __importStar(__nccwpck_require__(7436));
+function run(upstreamRepository, upstreamBranch, token, currentBranch) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.info(`Checking ${upstreamRepository}@${upstreamBranch} for changes ...`);
+        yield execGit(['fetch', upstreamRepository, upstreamBranch]);
+        const revList = (yield execGit(['rev-list', `HEAD..FETCH_HEAD`])).stdout.trim();
+        // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
+        core.debug(`revList: [${revList}]`);
+        if (!revList) {
+            core.info('Nothing new here, move along.');
+            return;
+        }
+        const revHead = (yield execGit(['rev-parse', '--short', 'FETCH_HEAD'])).stdout.trim();
+        const branch = `upstream-to-pr/rev-${revHead}`;
+        // check if branch already exists - this require a clone with full fetch depth
+        // `fetch-depth: 0` in github checkout action
+        const branches = yield execGit(['branch', '-a']);
+        if (branches.stdout.includes(`${branch}\n`)) {
+            core.info('Branch already exists, skipping');
+            return;
+        }
+        yield execGit(['checkout', '-b', branch, 'FETCH_HEAD']);
+        yield execGit(['push', '-u', 'origin', branch]);
+        const context = github.context;
+        const octokit = github.getOctokit(token);
+        const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream revision ${revHead}`, head: branch, base: currentBranch, body: `Auto-generated pull request.` }));
+        core.info(`Pull request created: ${pullRequest.url}`);
+    });
+}
+exports.run = run;
 function execGit(args, allowAllExitCodes = false, silent = false, customListeners = {}) {
     return __awaiter(this, void 0, void 0, function* () {
         // borrowed from actions/checkout - https://github.com/actions/checkout/blob/main/src/git-command-manager.ts
@@ -111,7 +167,6 @@ class GitOutput {
         this.exitCode = 0;
     }
 }
-run();
 
 
 /***/ }),
