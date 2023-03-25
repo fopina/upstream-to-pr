@@ -16,4 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: 'echo "Tag name from github.ref_name: ${{  github.ref_name }}"'
+      - name: update v1 to ${{  github.ref_name }}
+        run: |
+          git tag -f v1.Y
+          git push -f origin v1.Y
