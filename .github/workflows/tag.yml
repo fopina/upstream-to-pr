@@ -6,7 +6,8 @@ on:
       - main
       - 'releases/*'
 
-permissions: write-all
+permissions:
+  contents: write
 
 jobs:
   push_tag:
