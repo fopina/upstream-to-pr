@@ -182,7 +182,7 @@ describe('test upstream-to-pr update-tag', () => {
           commit: {
             sha: 'c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c',
             url: 'https://api.github.com/repos/octocat/Hello-World/git/commits/c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c'
-          },
+          }
         }
       ]
     } as any)

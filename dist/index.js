@@ -175,7 +175,8 @@ class UpstreamToPr {
         return __awaiter(this, void 0, void 0, function* () {
             const octokit = github.getOctokit(this.token);
             const [owner, repo] = yield this.parseOwnerRepo();
-            yield octokit.request(`GET /repos/${owner}/${repo}/tags`);
+            const res = yield octokit.request(`GET /repos/${owner}/${repo}/tags`);
+            core.info(res.data);
         });
     }
     execGit(args, allowAllExitCodes = false, silent = false, customListeners = {}) {
