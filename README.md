@@ -1,3 +1,5 @@
+[![build-test](https://github.com/fopina/upstream-to-pr/actions/workflows/test.yml/badge.svg)](https://github.com/fopina/upstream-to-pr/actions/workflows/test.yml) [![codecov](https://codecov.io/gh/fopina/upstream-to-pr/branch/main/graph/badge.svg?token=KPJZVZLXOV)](https://codecov.io/gh/fopina/upstream-to-pr)
+
 # upstream-to-pr
 
 Yet another action to keep your fork in sync with upstream.
