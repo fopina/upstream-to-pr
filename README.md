@@ -44,6 +44,8 @@ See [action.yml](action.yml)
 
 ### Daily check upstream
 
+#### Check main branch
+
 This example will check https://github.com/surface-security/surface `main` branch daily. Also allows for manual/API triggered checks (`workflow_dispatch`).
 
 ```yaml
@@ -69,3 +71,94 @@ jobs:
           token: ${{ secrets.PAT }}
           upstream-repository: https://github.com/surface-security/surface
 ```
+
+#### Check other branch
+
+Looking for edge changes, keep fork in sync with upstream `develop`
+
+```yaml
+name: upstream to PR
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+    inputs: {}
+
+jobs:
+  autoupdate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT }}
+
+      - uses: fopina/upstream-to-pr@v1
+        with:
+          token: ${{ secrets.PAT }}
+          upstream-repository: https://github.com/surface-security/surface
+          upstream-branch: develop
+```
+
+### Daily check latest tag
+
+#### Latest stable v1.*
+
+`upstream-tag` matches entire tag name, so `v1.2.3-dev1` is **excluded**, even if it is the latest.
+
+```yaml
+name: upstream to PR
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+    inputs: {}
+
+jobs:
+  autoupdate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT }}
+
+      - uses: fopina/upstream-to-pr@v1
+        with:
+          token: ${{ secrets.PAT }}
+          upstream-repository: https://github.com/surface-security/surface
+          upstream-tag: 'v1\.\d+\.\d+'
+```
+
+#### Any v*
+
+`upstream-tag` matches entire tag name, so `v1.2.3-dev1` is **excluded**, even if it is the latest.
+
+```yaml
+name: upstream to PR
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+    inputs: {}
+
+jobs:
+  autoupdate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT }}
+
+      - uses: fopina/upstream-to-pr@v1
+        with:
+          token: ${{ secrets.PAT }}
+          upstream-repository: https://github.com/surface-security/surface
+          upstream-tag: 'v1\..*'
+```
+
+
