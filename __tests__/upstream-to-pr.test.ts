@@ -164,31 +164,54 @@ describe('test upstream-to-pr owner and repo parser', () => {
 describe('test upstream-to-pr update-tag', () => {
   const firstInfoLine =
     'Checking http://github.com/god/world.git for newer tags...'
-  const runArgs: [string, string, string, string, string] = [
-    'http://github.com/god/world.git',
-    'main',
-    'xXx',
-    'main',
-    'v1.d+.d+'
-  ]
+  const octoMock = github.getOctokit('x')
+  const createMock = jest.spyOn(octoMock, 'request').mockResolvedValue({
+    status: 200,
+    data: [
+      {
+        name: 'random/tag'
+      },
+      {
+        name: 'v1.12.1-dev'
+      },
+      {
+        name: 'v1.10.1'
+      }
+    ]
+  } as any)
+  jest.spyOn(github, 'getOctokit').mockReturnValue(octoMock)
 
-  it('does nothing if branch already exists', async () => {
-    const octoMock = github.getOctokit('x')
-    const createMock = jest.spyOn(octoMock, 'request').mockResolvedValue({
-      status: 200,
-      data: [
-        {
-          name: 'v1.10.1',
-          commit: {
-            sha: 'c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c',
-            url: 'https://api.github.com/repos/octocat/Hello-World/git/commits/c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c'
-          }
-        }
-      ]
-    } as any)
-    jest.spyOn(github, 'getOctokit').mockReturnValue(octoMock)
-    await new UpstreamToPr(...runArgs).fetchHEAD()
-    expect(mInfo).toBeCalledTimes(1)
+  it('fetches matching tag', async () => {
+    await new UpstreamToPr(
+      'http://github.com/god/world.git',
+      'main',
+      'xXx',
+      'main',
+      'v1\\.\\d+\\.\\d+'
+    ).fetchHEAD()
+    expect(mInfo).toBeCalledTimes(2)
     expect(mInfo).toHaveBeenNthCalledWith(1, firstInfoLine)
+    expect(mInfo).toHaveBeenNthCalledWith(2, 'Updating to tag v1.10.1...')
+    // fetch
+    expect(mExec).toBeCalledTimes(1)
+    expect(createMock).toHaveBeenCalledTimes(1)
+    expect(createMock).toHaveBeenCalledWith('GET /repos/god/world/tags')
+  })
+
+  it('fetches any tag', async () => {
+    await new UpstreamToPr(
+      'http://github.com/god/world.git',
+      'main',
+      'xXx',
+      'main',
+      'v.*'
+    ).fetchHEAD()
+    expect(mInfo).toBeCalledTimes(2)
+    expect(mInfo).toHaveBeenNthCalledWith(1, firstInfoLine)
+    expect(mInfo).toHaveBeenNthCalledWith(2, 'Updating to tag v1.12.1-dev...')
+    // fetch
+    expect(mExec).toBeCalledTimes(1)
+    expect(createMock).toHaveBeenCalledTimes(1)
+    expect(createMock).toHaveBeenCalledWith('GET /repos/god/world/tags')
   })
 })

@@ -102,7 +102,20 @@ export class UpstreamToPr {
     const octokit = github.getOctokit(this.token)
     const [owner, repo] = await this.parseOwnerRepo()
     const res = await octokit.request(`GET /repos/${owner}/${repo}/tags`)
-    core.info(res.data)
+    const re = new RegExp(`${this.upstreamTag}$`)
+    let tagName = null
+    for (const tag of res.data) {
+      if (tag.name.match(re)) {
+        tagName = tag.name
+        break
+      }
+    }
+    if (tagName) {
+      core.info(`Updating to tag ${tagName}...`)
+      await this.execGit(['fetch', this.upstreamRepository, tagName])
+    } else {
+      core.info(`No matching tags found, ignoring.`)
+    }
   }
 
   async execGit(
