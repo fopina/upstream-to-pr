@@ -101,7 +101,8 @@ export class UpstreamToPr {
   async fetchTags(): Promise<void> {
     const octokit = github.getOctokit(this.token)
     const [owner, repo] = await this.parseOwnerRepo()
-    await octokit.request(`GET /repos/${owner}/${repo}/tags`)
+    const res = await octokit.request(`GET /repos/${owner}/${repo}/tags`)
+    console.log(res.data)
   }
 
   async execGit(
