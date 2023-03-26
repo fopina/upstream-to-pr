@@ -43,12 +43,18 @@
     "js-yaml": "^4.1.0",
     "prettier": "2.8.7",
     "ts-jest": "^27.1.2",
+    "ts-node": "^10.9.1",
     "typescript": "^4.9.5"
   },
   "jest": {
     "clearMocks": true,
-    "moduleFileExtensions": ["js", "ts"],
-    "testMatch": ["**/*.test.ts"],
+    "moduleFileExtensions": [
+      "js",
+      "ts"
+    ],
+    "testMatch": [
+      "**/*.test.ts"
+    ],
     "transform": {
       "^.+\\.ts$": "ts-jest"
     },
