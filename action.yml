@@ -12,6 +12,9 @@ inputs:
     description: 'upstream branch of the upstream project to monitor'
     required: true
     default: main
+  upstream-tag:
+    description: 'upstream tag expression of the upstream project to monitor - using this ignores upstream-branch'
+    required: false
 
 runs:
   using: 'node16'

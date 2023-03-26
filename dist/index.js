@@ -49,10 +49,11 @@ function run() {
                 required: true
             });
             const upstreamBranch = core.getInput('upstream-branch') || 'main';
+            const upstreamTag = core.getInput('upstream-tag');
             // github.context does not expose REF_NAME nor HEAD_REF, just use env...
             // try GITHUB_HEAD_REF (set if it is a PR) and fallback to GITHUB_REF_NAME
             const currentBranch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || '';
-            yield new upstream_to_pr_1.UpstreamToPr().run(upstreamRepository, upstreamBranch, token, currentBranch);
+            yield new upstream_to_pr_1.UpstreamToPr(upstreamRepository, upstreamBranch, token, currentBranch, upstreamTag).run();
         }
         catch (error) {
             if (error instanceof Error)
@@ -109,13 +110,17 @@ const exec = __importStar(__nccwpck_require__(1514));
 const github = __importStar(__nccwpck_require__(5438));
 const io = __importStar(__nccwpck_require__(7436));
 class UpstreamToPr {
-    constructor() {
+    constructor(upstreamRepository, upstreamBranch, token, currentBranch, upstreamTag) {
         this.gitPath = '';
+        this.upstreamRepository = upstreamRepository;
+        this.upstreamBranch = upstreamBranch;
+        this.token = token;
+        this.currentBranch = currentBranch;
+        this.upstreamTag = upstreamTag;
     }
-    run(upstreamRepository, upstreamBranch, token, currentBranch) {
+    run() {
         return __awaiter(this, void 0, void 0, function* () {
-            core.info(`Checking ${upstreamRepository}@${upstreamBranch} for changes...`);
-            yield this.execGit(['fetch', upstreamRepository, upstreamBranch]);
+            yield this.fetchHEAD();
             const revList = (yield this.execGit(['rev-list', `HEAD..FETCH_HEAD`])).stdout.trim();
             // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
             core.debug(`revList: [${revList}]`);
@@ -135,9 +140,57 @@ class UpstreamToPr {
             yield this.execGit(['checkout', '-b', branch, 'FETCH_HEAD']);
             yield this.execGit(['push', '-u', 'origin', branch]);
             const context = github.context;
-            const octokit = github.getOctokit(token);
-            const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream revision ${revHead}`, head: branch, base: currentBranch, body: `Auto-generated pull request.` }));
+            const octokit = github.getOctokit(this.token);
+            const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream revision ${revHead}`, head: branch, base: this.currentBranch, body: `Auto-generated pull request.` }));
             core.info(`Pull request created: ${pullRequest.url}.`);
+        });
+    }
+    fetchHEAD() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.upstreamTag) {
+                core.info(`Checking ${this.upstreamRepository} for newer tags...`);
+                return this.fetchTags();
+            }
+            else {
+                core.info(`Checking ${this.upstreamRepository}@${this.upstreamBranch} for changes...`);
+                yield this.execGit([
+                    'fetch',
+                    this.upstreamRepository,
+                    this.upstreamBranch
+                ]);
+            }
+        });
+    }
+    parseOwnerRepo() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const matches = this.upstreamRepository.match(/github.com:([a-zA-Z0-9_-]+?)\/([a-zA-Z0-9_-]+)/) ||
+                this.upstreamRepository.match(/github.com\/([a-zA-Z0-9_-]+?)\/([a-zA-Z0-9_-]+)/);
+            if (!matches) {
+                throw new Error(`Could not parse ${this.upstreamRepository} - only github.com repositories supported for upstream-tag`);
+            }
+            return [matches[1], matches[2]];
+        });
+    }
+    fetchTags() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const octokit = github.getOctokit(this.token);
+            const [owner, repo] = yield this.parseOwnerRepo();
+            const res = yield octokit.request(`GET /repos/${owner}/${repo}/tags`);
+            const re = new RegExp(`${this.upstreamTag}$`);
+            let tagName = null;
+            for (const tag of res.data) {
+                if (tag.name.match(re)) {
+                    tagName = tag.name;
+                    break;
+                }
+            }
+            if (tagName) {
+                core.info(`Updating to tag ${tagName}...`);
+                yield this.execGit(['fetch', this.upstreamRepository, tagName]);
+            }
+            else {
+                core.info(`No matching tags found, ignoring.`);
+            }
         });
     }
     execGit(args, allowAllExitCodes = false, silent = false, customListeners = {}) {
