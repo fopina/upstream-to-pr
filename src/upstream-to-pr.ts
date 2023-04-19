@@ -26,7 +26,7 @@ export class UpstreamToPr {
   }
 
   async run(): Promise<void> {
-    await this.fetchHEAD()
+    const refName = await this.fetchHEAD()
 
     const revList = (
       await this.execGit(['rev-list', `HEAD..FETCH_HEAD`])
@@ -58,7 +58,7 @@ export class UpstreamToPr {
     const octokit = github.getOctokit(this.token)
     const {data: pullRequest} = await octokit.rest.pulls.create({
       ...context.repo,
-      title: `Upstream revision ${revHead}`,
+      title: `Upstream ${refName} (revision ${revHead})`,
       head: branch,
       base: this.currentBranch,
       body: `Auto-generated pull request.`
@@ -66,10 +66,10 @@ export class UpstreamToPr {
     core.info(`Pull request created: ${pullRequest.url}.`)
   }
 
-  async fetchHEAD(): Promise<void> {
+  async fetchHEAD(): Promise<string> {
     if (this.upstreamTag) {
       core.info(`Checking ${this.upstreamRepository} for newer tags...`)
-      return this.fetchTags()
+      return `tag ${this.fetchTags()}`
     } else {
       core.info(
         `Checking ${this.upstreamRepository}@${this.upstreamBranch} for changes...`
@@ -79,6 +79,7 @@ export class UpstreamToPr {
         this.upstreamRepository,
         this.upstreamBranch
       ])
+      return `branch ${this.upstreamBranch}`
     }
   }
 
@@ -98,7 +99,7 @@ export class UpstreamToPr {
     return [matches[1], matches[2]]
   }
 
-  async fetchTags(): Promise<void> {
+  async fetchTags(): Promise<string> {
     const octokit = github.getOctokit(this.token)
     const [owner, repo] = await this.parseOwnerRepo()
     const res = await octokit.request(`GET /repos/${owner}/${repo}/tags`)
@@ -116,6 +117,7 @@ export class UpstreamToPr {
     } else {
       core.info(`No matching tags found, ignoring.`)
     }
+    return tagName
   }
 
   async execGit(
