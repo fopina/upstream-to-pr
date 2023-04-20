@@ -113,7 +113,9 @@ describe('test upstream-to-pr with branch', () => {
     expect(createMock).toHaveBeenCalledTimes(1)
     expect(createMock).toHaveBeenCalledWith({
       base: 'main',
-      body: 'Auto-generated pull request.',
+      body: `Integrating latest changes from [god/world](https://github.com/god/world) branch main
+
+x`,
       head: 'upstream-to-pr/rev-bababa',
       owner: 'xxx',
       repo: undefined,
@@ -149,7 +151,9 @@ describe('test upstream-to-pr with branch', () => {
     expect(createMock).toHaveBeenCalledTimes(1)
     expect(createMock).toHaveBeenCalledWith({
       base: 'main',
-      body: 'Auto-generated pull request.',
+      body: `Integrating latest changes from [god/world](https://github.com/god/world) branch main
+
+x`,
       head: 'upstream-to-pr/rev-bababa',
       owner: 'xxx',
       repo: undefined,
@@ -305,11 +309,73 @@ describe('test upstream-to-pr update-tag', () => {
     expect(createMock).toHaveBeenCalledTimes(1)
     expect(createMock).toHaveBeenCalledWith({
       base: 'main',
-      body: 'Auto-generated pull request.',
+      body: `Integrating latest changes from [god/world](https://github.com/god/world) tag v1.12.1-dev
+
+x`,
       head: 'upstream-to-pr/rev-bababa',
       owner: 'xxx',
       repo: undefined,
       title: 'Upstream tag v1.12.1-dev (revision bababa)'
+    })
+  })
+})
+
+describe('test upstream-to-pr createPR', () => {
+  const prLine = 'Pull request created: http://git.url/to/pr.'
+  const octoMock = github.getOctokit('x')
+  jest.spyOn(github, 'getOctokit').mockReturnValue(octoMock)
+  const createMock = jest
+    .spyOn(octoMock.rest.pulls, 'create')
+    .mockResolvedValue({
+      data: {
+        url: 'http://git.url/to/pr'
+      }
+    } as any)
+  const createPRArgs: [string, string, string] = [
+    'branch main',
+    'bababa',
+    `bababa Hello World
+dadead This val#1 fixes #116
+`
+  ]
+
+  it('branch name', async () => {
+    await new UpstreamToPr({
+      ...defaultOptions
+    }).createPR(...createPRArgs)
+    expect(mInfo).toBeCalledTimes(1)
+    expect(mInfo).toHaveBeenNthCalledWith(1, prLine)
+    expect(createMock).toHaveBeenCalledWith({
+      base: 'main',
+      body: `Integrating latest changes from [god/world](https://github.com/god/world) branch main
+
+bababa Hello World
+dadead This val#1 fixes god/world#116
+`,
+      head: 'upstream-to-pr/rev-bababa',
+      owner: 'xxx',
+      repo: undefined,
+      title: 'Upstream branch main (revision bababa)'
+    })
+  })
+  it('branch name, non-github', async () => {
+    await new UpstreamToPr({
+      ...defaultOptions,
+      upstreamRepository: 'https://gitlab.com/god/world'
+    }).createPR(...createPRArgs)
+    expect(mInfo).toBeCalledTimes(1)
+    expect(mInfo).toHaveBeenNthCalledWith(1, prLine)
+    expect(createMock).toHaveBeenCalledWith({
+      base: 'main',
+      body: `Integrating latest changes from https://gitlab.com/god/world branch main
+
+bababa Hello World
+dadead This val#1 fixes #116
+`,
+      head: 'upstream-to-pr/rev-bababa',
+      owner: 'xxx',
+      repo: undefined,
+      title: 'Upstream branch main (revision bababa)'
     })
   })
 })

@@ -3,6 +3,10 @@ import * as exec from '@actions/exec'
 import * as github from '@actions/github'
 import * as io from '@actions/io'
 
+const BRANCH_PREFIX = 'upstream-to-pr/rev-'
+// GitHub PRs messages have a max body size limit of 65536
+const PR_BODY_MAX_CHARACTERS = 60000
+
 export interface UpstreamToPrOptions {
   upstreamRepository: string
   upstreamBranch: string
@@ -24,7 +28,7 @@ export class UpstreamToPr {
     const refName = await this.fetchHEAD()
 
     const revList = (
-      await this.execGit(['rev-list', `HEAD..FETCH_HEAD`])
+      await this.execGit(['rev-list', `HEAD..FETCH_HEAD`, '--pretty=oneline'])
     ).stdout.trim()
     // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
     core.debug(`revList: [${revList}]`)
@@ -36,7 +40,7 @@ export class UpstreamToPr {
     const revHead = (
       await this.execGit(['rev-parse', '--short', 'FETCH_HEAD'])
     ).stdout.trim()
-    const branch = `upstream-to-pr/rev-${revHead}`
+    const branch = `${BRANCH_PREFIX}${revHead}`
 
     // check if branch already exists - this require a clone with full fetch depth
     // `fetch-depth: 0` in github checkout action
@@ -49,26 +53,53 @@ export class UpstreamToPr {
     await this.execGit(['checkout', '-b', branch, 'FETCH_HEAD'])
     await this.execGit(['push', '-u', 'origin', branch])
 
-    const context = github.context
-    const octokit = github.getOctokit(this.options.token)
-    const {data: pullRequest} = await octokit.rest.pulls.create({
-      ...context.repo,
-      title: `Upstream ${refName} (revision ${revHead})`,
-      head: branch,
-      base: this.options.currentBranch,
-      body: `Auto-generated pull request.`
-    })
-    core.info(`Pull request created: ${pullRequest.url}.`)
+    await this.createPR(refName, revHead, revList)
 
     if (!this.options.keepOld) {
       for (const oldBranch of branches.stdout.split('\n')) {
         const c = oldBranch.trim().replace('remotes/origin/', '')
-        if (c.startsWith('upstream-to-pr/rev-') && c !== branch) {
+        if (c.startsWith(BRANCH_PREFIX) && c !== branch) {
           core.info(`Deleting branch ${c}`)
           this.execGit(['push', 'origin', `:${c}`])
         }
       }
     }
+  }
+
+  async createPR(
+    refName: string,
+    revHead: string,
+    revList: string
+  ): Promise<void> {
+    const branch = `${BRANCH_PREFIX}${revHead}`
+    const context = github.context
+    const octokit = github.getOctokit(this.options.token)
+
+    let bodyHeader
+    let changeList = revList
+    if (changeList.length > PR_BODY_MAX_CHARACTERS)
+      changeList = 'Commit summary omitted as it exceeds maximum message size.'
+
+    try {
+      const [owner, repo] = await this.parseOwnerRepo()
+      bodyHeader = `Integrating latest changes from [${owner}/${repo}](https://github.com/${owner}/${repo}) ${refName}`
+      changeList = changeList.replace(
+        /(\W)(#\d+)(\b)/g,
+        `$1${owner}/${repo}$2$3`
+      )
+    } catch (e) {
+      bodyHeader = `Integrating latest changes from ${this.options.upstreamRepository} ${refName}`
+    }
+    const {data: pullRequest} = await octokit.rest.pulls.create({
+      ...context.repo,
+      title: `Upstream ${refName} (revision ${revHead})`,
+      head: branch,
+      base: this.options.currentBranch,
+      body: `${bodyHeader}
+
+${changeList}`
+    })
+    core.info(`Pull request created: ${pullRequest.url}.`)
   }
 
   async fetchHEAD(): Promise<string> {
