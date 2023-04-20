@@ -68,11 +68,13 @@ export class UpstreamToPr {
     })
     core.info(`Pull request created: ${pullRequest.url}.`)
 
-    for (const oldBranch of branches.stdout.split('\n')) {
-      const c = oldBranch.trim().replace('remotes/origin/', '')
-      if (c.startsWith('upstream-to-pr/rev-') && c !== branch) {
-        core.info(`Deleting branch ${c}`)
-        this.execGit(['push', 'origin', `:${c}`])
+    if (!this.keepOld) {
+      for (const oldBranch of branches.stdout.split('\n')) {
+        const c = oldBranch.trim().replace('remotes/origin/', '')
+        if (c.startsWith('upstream-to-pr/rev-') && c !== branch) {
+          core.info(`Deleting branch ${c}`)
+          this.execGit(['push', 'origin', `:${c}`])
+        }
       }
     }
   }

@@ -145,10 +145,13 @@ class UpstreamToPr {
             const octokit = github.getOctokit(this.token);
             const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream ${refName} (revision ${revHead})`, head: branch, base: this.currentBranch, body: `Auto-generated pull request.` }));
             core.info(`Pull request created: ${pullRequest.url}.`);
-            for (const oldBranch of branches.stdout.split('\n')) {
-                const c = oldBranch.trim().replace('remotes/origin/', '');
-                if (c.startsWith('upstream-to-pr/rev-') && c !== branch) {
-                    this.execGit(['push', 'origin', `:${c}`]);
+            if (!this.keepOld) {
+                for (const oldBranch of branches.stdout.split('\n')) {
+                    const c = oldBranch.trim().replace('remotes/origin/', '');
+                    if (c.startsWith('upstream-to-pr/rev-') && c !== branch) {
+                        core.info(`Deleting branch ${c}`);
+                        this.execGit(['push', 'origin', `:${c}`]);
+                    }
                 }
             }
         });
