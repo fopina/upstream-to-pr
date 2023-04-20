@@ -10,19 +10,22 @@ export class UpstreamToPr {
   token: string
   currentBranch: string
   upstreamTag: string
+  keepOld: boolean
 
   constructor(
     upstreamRepository: string,
     upstreamBranch: string,
     token: string,
     currentBranch: string,
-    upstreamTag: string
+    upstreamTag: string,
+    keepOld: boolean
   ) {
     this.upstreamRepository = upstreamRepository
     this.upstreamBranch = upstreamBranch
     this.token = token
     this.currentBranch = currentBranch
     this.upstreamTag = upstreamTag
+    this.keepOld = keepOld
   }
 
   async run(): Promise<void> {
@@ -46,6 +49,7 @@ export class UpstreamToPr {
     // check if branch already exists - this require a clone with full fetch depth
     // `fetch-depth: 0` in github checkout action
     const branches = await this.execGit(['branch', '-a'])
+    core.info(branches.stdout)
     if (branches.stdout.includes(`${branch}\n`)) {
       core.info('Branch already exists, skipping.')
       return

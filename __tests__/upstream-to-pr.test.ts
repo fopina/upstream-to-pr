@@ -10,12 +10,13 @@ jest.spyOn(core, 'debug').mockImplementation()
 
 describe('test upstream-to-pr with branch', () => {
   const firstInfoLine = 'Checking http://example.com/a.git@main for changes...'
-  const runArgs: [string, string, string, string, string] = [
+  const runArgs: [string, string, string, string, string, boolean] = [
     'http://example.com/a.git',
     'main',
     'xXx',
     'main',
-    ''
+    '',
+    false
   ]
 
   it('does nothing if no upstream changes', async () => {
@@ -62,7 +63,11 @@ describe('test upstream-to-pr with branch', () => {
             args[2]?.listeners?.stdout!(Buffer.from('bababa'))
             break
           case 'branch':
-            args[2]?.listeners?.stdout!(Buffer.from('upstream-to-pr/rev-\n'))
+            args[2]?.listeners?.stdout!(
+              Buffer.from(
+                'upstream-to-pr/rev-\nother/branch\nupstream-to-pr/rev-xx\n'
+              )
+            )
             break
         }
       }
@@ -105,7 +110,8 @@ describe('test upstream-to-pr owner and repo parser', () => {
       '',
       '',
       '',
-      ''
+      '',
+      false
     ).parseOwnerRepo()
     expect(owner).toBe('god')
     expect(repo).toBe('world')
@@ -117,7 +123,8 @@ describe('test upstream-to-pr owner and repo parser', () => {
       '',
       '',
       '',
-      ''
+      '',
+      false
     ).parseOwnerRepo()
     expect(owner).toBe('god')
     expect(repo).toBe('world')
@@ -129,7 +136,8 @@ describe('test upstream-to-pr owner and repo parser', () => {
       '',
       '',
       '',
-      ''
+      '',
+      false
     ).parseOwnerRepo()
     expect(owner).toBe('god')
     expect(repo).toBe('world')
@@ -141,7 +149,8 @@ describe('test upstream-to-pr owner and repo parser', () => {
       '',
       '',
       '',
-      ''
+      '',
+      false
     ).parseOwnerRepo()
     expect(owner).toBe('god')
     expect(repo).toBe('world')
@@ -153,7 +162,8 @@ describe('test upstream-to-pr owner and repo parser', () => {
       '',
       '',
       '',
-      ''
+      '',
+      false
     ).parseOwnerRepo()
     expect(promise).rejects.toThrow(
       `Could not parse git@gitlab.com:god/world.git - only github.com repositories supported for upstream-tag`
@@ -187,7 +197,8 @@ describe('test upstream-to-pr update-tag', () => {
       'main',
       'xXx',
       'main',
-      'v1\\.\\d+\\.\\d+'
+      'v1\\.\\d+\\.\\d+',
+      false
     ).fetchHEAD()
     expect(mInfo).toBeCalledTimes(2)
     expect(mInfo).toHaveBeenNthCalledWith(1, firstInfoLine)
@@ -204,7 +215,8 @@ describe('test upstream-to-pr update-tag', () => {
       'main',
       'xXx',
       'main',
-      'v.*'
+      'v.*',
+      false
     ).fetchHEAD()
     expect(mInfo).toBeCalledTimes(2)
     expect(mInfo).toHaveBeenNthCalledWith(1, firstInfoLine)
@@ -221,7 +233,8 @@ describe('test upstream-to-pr update-tag', () => {
       'main',
       'xXx',
       'main',
-      'v3..*'
+      'v3..*',
+      false
     ).fetchHEAD()
     expect(mInfo).toBeCalledTimes(2)
     expect(mInfo).toHaveBeenNthCalledWith(1, firstInfoLine)
@@ -264,7 +277,8 @@ describe('test upstream-to-pr update-tag', () => {
       'main',
       'xXx',
       'main',
-      'v.*'
+      'v.*',
+      false
     ).run()
     // fetch, rev-list, rev-parse, branch, checkout, push
     expect(mExec).toBeCalledTimes(6)

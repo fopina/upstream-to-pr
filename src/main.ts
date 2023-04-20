@@ -9,6 +9,7 @@ async function run(): Promise<void> {
     })
     const upstreamBranch: string = core.getInput('upstream-branch') || 'main'
     const upstreamTag: string = core.getInput('upstream-tag')
+    const keepOld: boolean = core.getBooleanInput('keep-old')
     // github.context does not expose REF_NAME nor HEAD_REF, just use env...
     // try GITHUB_HEAD_REF (set if it is a PR) and fallback to GITHUB_REF_NAME
     const currentBranch =
@@ -19,7 +20,8 @@ async function run(): Promise<void> {
       upstreamBranch,
       token,
       currentBranch,
-      upstreamTag
+      upstreamTag,
+      keepOld
     ).run()
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
