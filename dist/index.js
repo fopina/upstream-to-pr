@@ -117,6 +117,9 @@ const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 const github = __importStar(__nccwpck_require__(5438));
 const io = __importStar(__nccwpck_require__(7436));
+const BRANCH_PREFIX = 'upstream-to-pr/rev-';
+// GitHub PRs messages have a max body size limit of 65536
+const PR_BODY_MAX_CHARACTERS = 60000;
 class UpstreamToPr {
     constructor(options) {
         this.gitPath = '';
@@ -125,7 +128,7 @@ class UpstreamToPr {
     run() {
         return __awaiter(this, void 0, void 0, function* () {
             const refName = yield this.fetchHEAD();
-            const revList = (yield this.execGit(['rev-list', `HEAD..FETCH_HEAD`])).stdout.trim();
+            const revList = (yield this.execGit(['rev-list', `HEAD..FETCH_HEAD`, '--pretty=oneline'])).stdout.trim();
             // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
             core.debug(`revList: [${revList}]`);
             if (!revList) {
@@ -133,7 +136,7 @@ class UpstreamToPr {
                 return;
             }
             const revHead = (yield this.execGit(['rev-parse', '--short', 'FETCH_HEAD'])).stdout.trim();
-            const branch = `upstream-to-pr/rev-${revHead}`;
+            const branch = `${BRANCH_PREFIX}${revHead}`;
             // check if branch already exists - this require a clone with full fetch depth
             // `fetch-depth: 0` in github checkout action
             const branches = yield this.execGit(['branch', '-a']);
@@ -143,19 +146,39 @@ class UpstreamToPr {
             }
             yield this.execGit(['checkout', '-b', branch, 'FETCH_HEAD']);
             yield this.execGit(['push', '-u', 'origin', branch]);
-            const context = github.context;
-            const octokit = github.getOctokit(this.options.token);
-            const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream ${refName} (revision ${revHead})`, head: branch, base: this.options.currentBranch, body: `Auto-generated pull request.` }));
-            core.info(`Pull request created: ${pullRequest.url}.`);
+            yield this.createPR(refName, revHead, revList);
             if (!this.options.keepOld) {
                 for (const oldBranch of branches.stdout.split('\n')) {
                     const c = oldBranch.trim().replace('remotes/origin/', '');
-                    if (c.startsWith('upstream-to-pr/rev-') && c !== branch) {
+                    if (c.startsWith(BRANCH_PREFIX) && c !== branch) {
                         core.info(`Deleting branch ${c}`);
                         this.execGit(['push', 'origin', `:${c}`]);
                     }
                 }
             }
+        });
+    }
+    createPR(refName, revHead, revList) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const branch = `${BRANCH_PREFIX}${revHead}`;
+            const context = github.context;
+            const octokit = github.getOctokit(this.options.token);
+            let bodyHeader;
+            let changeList = revList;
+            if (changeList.length > PR_BODY_MAX_CHARACTERS)
+                changeList = 'Commit summary omitted as it exceeds maximum message size.';
+            try {
+                const [owner, repo] = yield this.parseOwnerRepo();
+                bodyHeader = `Integrating latest changes from [${owner}/${repo}](https://github.com/${owner}/${repo}) ${refName}`;
+                changeList = changeList.replace(/(\W)(#\d+)(\b)/g, `$1${owner}/${repo}$2$3`);
+            }
+            catch (e) {
+                bodyHeader = `Integrating latest changes from ${this.options.upstreamRepository} ${refName}`;
+            }
+            const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream ${refName} (revision ${revHead})`, head: branch, base: this.options.currentBranch, body: `${bodyHeader}
+
+${changeList}` }));
+            core.info(`Pull request created: ${pullRequest.url}.`);
         });
     }
     fetchHEAD() {
