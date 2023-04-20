@@ -10,12 +10,13 @@ jest.spyOn(core, 'debug').mockImplementation()
 
 describe('test upstream-to-pr with branch', () => {
   const firstInfoLine = 'Checking http://example.com/a.git@main for changes...'
-  const runArgs: [string, string, string, string, string] = [
+  const runArgs: [string, string, string, string, string, boolean] = [
     'http://example.com/a.git',
     'main',
     'xXx',
     'main',
-    ''
+    '',
+    false
   ]
 
   it('does nothing if no upstream changes', async () => {
@@ -62,7 +63,11 @@ describe('test upstream-to-pr with branch', () => {
             args[2]?.listeners?.stdout!(Buffer.from('bababa'))
             break
           case 'branch':
-            args[2]?.listeners?.stdout!(Buffer.from('upstream-to-pr/rev-\n'))
+            args[2]?.listeners?.stdout!(
+              Buffer.from(
+                'upstream-to-pr/rev-\nother/branch\nupstream-to-pr/rev-xx\n'
+              )
+            )
             break
         }
       }
@@ -78,6 +83,79 @@ describe('test upstream-to-pr with branch', () => {
       } as any)
     jest.spyOn(github, 'getOctokit').mockReturnValue(octoMock)
     await new UpstreamToPr(...runArgs).run()
+    // fetch, rev-list, rev-parse, branch, checkout, push, push :, push :
+    expect(mExec).toBeCalledTimes(8)
+    expect(mExec).toHaveBeenNthCalledWith(
+      7,
+      expect.anything(),
+      ['push', 'origin', ':upstream-to-pr/rev-'],
+      expect.anything()
+    )
+    expect(mExec).toHaveBeenNthCalledWith(
+      8,
+      expect.anything(),
+      ['push', 'origin', ':upstream-to-pr/rev-xx'],
+      expect.anything()
+    )
+    expect(mInfo).toBeCalledTimes(4)
+    expect(mInfo).toHaveBeenNthCalledWith(1, firstInfoLine)
+    expect(mInfo).toHaveBeenNthCalledWith(
+      2,
+      'Pull request created: http://git.url/to/pr.'
+    )
+    expect(mInfo).toHaveBeenNthCalledWith(
+      3,
+      'Deleting branch upstream-to-pr/rev-'
+    )
+    expect(mInfo).toHaveBeenNthCalledWith(
+      4,
+      'Deleting branch upstream-to-pr/rev-xx'
+    )
+    expect(createMock).toHaveBeenCalledTimes(1)
+    expect(createMock).toHaveBeenCalledWith({
+      base: 'main',
+      body: 'Auto-generated pull request.',
+      head: 'upstream-to-pr/rev-bababa',
+      owner: 'xxx',
+      repo: undefined,
+      title: 'Upstream branch main (revision bababa)'
+    })
+  })
+
+  it('creates PR if branch is new and keep old PRs', async () => {
+    process.env['GITHUB_REPOSITORY'] = 'xxx'
+    mExec.mockImplementation(async (...args) => {
+      if (args[1]) {
+        switch (args[1][0]) {
+          case 'rev-list':
+            args[2]?.listeners?.stdout!(Buffer.from('x'))
+            break
+          case 'rev-parse':
+            args[2]?.listeners?.stdout!(Buffer.from('bababa'))
+            break
+          case 'branch':
+            args[2]?.listeners?.stdout!(
+              Buffer.from(
+                'upstream-to-pr/rev-\nother/branch\nupstream-to-pr/rev-xx\n'
+              )
+            )
+            break
+        }
+      }
+      return 0
+    })
+    const octoMock = github.getOctokit('x')
+    const createMock = jest
+      .spyOn(octoMock.rest.pulls, 'create')
+      .mockResolvedValue({
+        data: {
+          url: 'http://git.url/to/pr'
+        }
+      } as any)
+    jest.spyOn(github, 'getOctokit').mockReturnValue(octoMock)
+    const newRunArgs: typeof runArgs = [...runArgs]
+    newRunArgs[5] = true
+    await new UpstreamToPr(...newRunArgs).run()
     // fetch, rev-list, rev-parse, branch, checkout, push
     expect(mExec).toBeCalledTimes(6)
     expect(mInfo).toBeCalledTimes(2)
@@ -105,7 +183,8 @@ describe('test upstream-to-pr owner and repo parser', () => {
       '',
       '',
       '',
-      ''
+      '',
+      false
     ).parseOwnerRepo()
     expect(owner).toBe('god')
     expect(repo).toBe('world')
@@ -117,7 +196,8 @@ describe('test upstream-to-pr owner and repo parser', () => {
       '',
       '',
       '',
-      ''
+      '',
+      false
     ).parseOwnerRepo()
     expect(owner).toBe('god')
     expect(repo).toBe('world')
@@ -129,7 +209,8 @@ describe('test upstream-to-pr owner and repo parser', () => {
       '',
       '',
       '',
-      ''
+      '',
+      false
     ).parseOwnerRepo()
     expect(owner).toBe('god')
     expect(repo).toBe('world')
@@ -141,7 +222,8 @@ describe('test upstream-to-pr owner and repo parser', () => {
       '',
       '',
       '',
-      ''
+      '',
+      false
     ).parseOwnerRepo()
     expect(owner).toBe('god')
     expect(repo).toBe('world')
@@ -153,7 +235,8 @@ describe('test upstream-to-pr owner and repo parser', () => {
       '',
       '',
       '',
-      ''
+      '',
+      false
     ).parseOwnerRepo()
     expect(promise).rejects.toThrow(
       `Could not parse git@gitlab.com:god/world.git - only github.com repositories supported for upstream-tag`
@@ -187,7 +270,8 @@ describe('test upstream-to-pr update-tag', () => {
       'main',
       'xXx',
       'main',
-      'v1\\.\\d+\\.\\d+'
+      'v1\\.\\d+\\.\\d+',
+      false
     ).fetchHEAD()
     expect(mInfo).toBeCalledTimes(2)
     expect(mInfo).toHaveBeenNthCalledWith(1, firstInfoLine)
@@ -204,7 +288,8 @@ describe('test upstream-to-pr update-tag', () => {
       'main',
       'xXx',
       'main',
-      'v.*'
+      'v.*',
+      false
     ).fetchHEAD()
     expect(mInfo).toBeCalledTimes(2)
     expect(mInfo).toHaveBeenNthCalledWith(1, firstInfoLine)
@@ -221,7 +306,8 @@ describe('test upstream-to-pr update-tag', () => {
       'main',
       'xXx',
       'main',
-      'v3..*'
+      'v3..*',
+      false
     ).fetchHEAD()
     expect(mInfo).toBeCalledTimes(2)
     expect(mInfo).toHaveBeenNthCalledWith(1, firstInfoLine)
@@ -264,16 +350,27 @@ describe('test upstream-to-pr update-tag', () => {
       'main',
       'xXx',
       'main',
-      'v.*'
+      'v.*',
+      false
     ).run()
     // fetch, rev-list, rev-parse, branch, checkout, push
-    expect(mExec).toBeCalledTimes(6)
-    expect(mInfo).toBeCalledTimes(3)
+    expect(mExec).toBeCalledTimes(7)
+    expect(mExec).toHaveBeenNthCalledWith(
+      7,
+      expect.anything(),
+      ['push', 'origin', ':upstream-to-pr/rev-'],
+      expect.anything()
+    )
+    expect(mInfo).toBeCalledTimes(4)
     expect(mInfo).toHaveBeenNthCalledWith(1, firstInfoLine)
     expect(mInfo).toHaveBeenNthCalledWith(2, 'Updating to tag v1.12.1-dev...')
     expect(mInfo).toHaveBeenNthCalledWith(
       3,
       'Pull request created: http://git.url/to/pr.'
+    )
+    expect(mInfo).toHaveBeenNthCalledWith(
+      4,
+      'Deleting branch upstream-to-pr/rev-'
     )
     expect(createMock).toHaveBeenCalledTimes(1)
     expect(createMock).toHaveBeenCalledWith({

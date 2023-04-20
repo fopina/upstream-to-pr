@@ -50,10 +50,11 @@ function run() {
             });
             const upstreamBranch = core.getInput('upstream-branch') || 'main';
             const upstreamTag = core.getInput('upstream-tag');
+            const keepOld = core.getBooleanInput('keep-old');
             // github.context does not expose REF_NAME nor HEAD_REF, just use env...
             // try GITHUB_HEAD_REF (set if it is a PR) and fallback to GITHUB_REF_NAME
             const currentBranch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || '';
-            yield new upstream_to_pr_1.UpstreamToPr(upstreamRepository, upstreamBranch, token, currentBranch, upstreamTag).run();
+            yield new upstream_to_pr_1.UpstreamToPr(upstreamRepository, upstreamBranch, token, currentBranch, upstreamTag, keepOld).run();
         }
         catch (error) {
             if (error instanceof Error)
@@ -110,13 +111,14 @@ const exec = __importStar(__nccwpck_require__(1514));
 const github = __importStar(__nccwpck_require__(5438));
 const io = __importStar(__nccwpck_require__(7436));
 class UpstreamToPr {
-    constructor(upstreamRepository, upstreamBranch, token, currentBranch, upstreamTag) {
+    constructor(upstreamRepository, upstreamBranch, token, currentBranch, upstreamTag, keepOld) {
         this.gitPath = '';
         this.upstreamRepository = upstreamRepository;
         this.upstreamBranch = upstreamBranch;
         this.token = token;
         this.currentBranch = currentBranch;
         this.upstreamTag = upstreamTag;
+        this.keepOld = keepOld;
     }
     run() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -143,6 +145,15 @@ class UpstreamToPr {
             const octokit = github.getOctokit(this.token);
             const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream ${refName} (revision ${revHead})`, head: branch, base: this.currentBranch, body: `Auto-generated pull request.` }));
             core.info(`Pull request created: ${pullRequest.url}.`);
+            if (!this.keepOld) {
+                for (const oldBranch of branches.stdout.split('\n')) {
+                    const c = oldBranch.trim().replace('remotes/origin/', '');
+                    if (c.startsWith('upstream-to-pr/rev-') && c !== branch) {
+                        core.info(`Deleting branch ${c}`);
+                        this.execGit(['push', 'origin', `:${c}`]);
+                    }
+                }
+            }
         });
     }
     fetchHEAD() {

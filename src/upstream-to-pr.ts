@@ -10,19 +10,22 @@ export class UpstreamToPr {
   token: string
   currentBranch: string
   upstreamTag: string
+  keepOld: boolean
 
   constructor(
     upstreamRepository: string,
     upstreamBranch: string,
     token: string,
     currentBranch: string,
-    upstreamTag: string
+    upstreamTag: string,
+    keepOld: boolean
   ) {
     this.upstreamRepository = upstreamRepository
     this.upstreamBranch = upstreamBranch
     this.token = token
     this.currentBranch = currentBranch
     this.upstreamTag = upstreamTag
+    this.keepOld = keepOld
   }
 
   async run(): Promise<void> {
@@ -64,6 +67,16 @@ export class UpstreamToPr {
       body: `Auto-generated pull request.`
     })
     core.info(`Pull request created: ${pullRequest.url}.`)
+
+    if (!this.keepOld) {
+      for (const oldBranch of branches.stdout.split('\n')) {
+        const c = oldBranch.trim().replace('remotes/origin/', '')
+        if (c.startsWith('upstream-to-pr/rev-') && c !== branch) {
+          core.info(`Deleting branch ${c}`)
+          this.execGit(['push', 'origin', `:${c}`])
+        }
+      }
+    }
   }
 
   async fetchHEAD(): Promise<string> {

@@ -7,6 +7,7 @@ describe('show how the runner will run a javascript action with env / stdout pro
     process.env['INPUT_TOKEN'] = 'xxx'
     process.env['INPUT_UPSTREAM-REPOSITORY'] = '.'
     process.env['INPUT_UPSTREAM-BRANCH'] = 'develop'
+    process.env['INPUT_KEEP-OLD'] = 'false'
     const np = process.execPath
     const ip = path.join(__dirname, '..', 'lib', 'main.js')
     const options: cp.ExecFileSyncOptions = {

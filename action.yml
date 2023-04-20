@@ -15,6 +15,9 @@ inputs:
   upstream-tag:
     description: 'upstream tag expression of the upstream project to monitor - using this ignores upstream-branch'
     required: false
+  keep-old:
+    description: 'delete older PRs (and branches) when a more recent PR is open'
+    default: false
 
 runs:
   using: 'node16'
