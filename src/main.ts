@@ -15,14 +15,14 @@ async function run(): Promise<void> {
     const currentBranch =
       process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || ''
 
-    await new UpstreamToPr(
+    await new UpstreamToPr({
       upstreamRepository,
       upstreamBranch,
       token,
       currentBranch,
       upstreamTag,
       keepOld
-    ).run()
+    }).run()
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
