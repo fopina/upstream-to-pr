@@ -120,7 +120,7 @@ class UpstreamToPr {
     }
     run() {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.fetchHEAD();
+            const refName = yield this.fetchHEAD();
             const revList = (yield this.execGit(['rev-list', `HEAD..FETCH_HEAD`])).stdout.trim();
             // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
             core.debug(`revList: [${revList}]`);
@@ -141,7 +141,7 @@ class UpstreamToPr {
             yield this.execGit(['push', '-u', 'origin', branch]);
             const context = github.context;
             const octokit = github.getOctokit(this.token);
-            const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream revision ${revHead}`, head: branch, base: this.currentBranch, body: `Auto-generated pull request.` }));
+            const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream ${refName} (revision ${revHead})`, head: branch, base: this.currentBranch, body: `Auto-generated pull request.` }));
             core.info(`Pull request created: ${pullRequest.url}.`);
         });
     }
@@ -149,7 +149,7 @@ class UpstreamToPr {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.upstreamTag) {
                 core.info(`Checking ${this.upstreamRepository} for newer tags...`);
-                return this.fetchTags();
+                return `tag ${yield this.fetchTags()}`;
             }
             else {
                 core.info(`Checking ${this.upstreamRepository}@${this.upstreamBranch} for changes...`);
@@ -158,6 +158,7 @@ class UpstreamToPr {
                     this.upstreamRepository,
                     this.upstreamBranch
                 ]);
+                return `branch ${this.upstreamBranch}`;
             }
         });
     }
@@ -191,6 +192,7 @@ class UpstreamToPr {
             else {
                 core.info(`No matching tags found, ignoring.`);
             }
+            return tagName;
         });
     }
     execGit(args, allowAllExitCodes = false, silent = false, customListeners = {}) {
