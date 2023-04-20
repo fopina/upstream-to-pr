@@ -1,6 +1,6 @@
 {
   "name": "upstream-to-pr",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Fetch upstream branch and open PR (if any changes)",
   "main": "lib/main.js",
