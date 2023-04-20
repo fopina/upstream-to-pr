@@ -3,29 +3,21 @@ import * as exec from '@actions/exec'
 import * as github from '@actions/github'
 import * as io from '@actions/io'
 
-export class UpstreamToPr {
-  gitPath = ''
+export interface UpstreamToPrOptions {
   upstreamRepository: string
   upstreamBranch: string
   token: string
   currentBranch: string
   upstreamTag: string
   keepOld: boolean
+}
 
-  constructor(
-    upstreamRepository: string,
-    upstreamBranch: string,
-    token: string,
-    currentBranch: string,
-    upstreamTag: string,
-    keepOld: boolean
-  ) {
-    this.upstreamRepository = upstreamRepository
-    this.upstreamBranch = upstreamBranch
-    this.token = token
-    this.currentBranch = currentBranch
-    this.upstreamTag = upstreamTag
-    this.keepOld = keepOld
+export class UpstreamToPr {
+  gitPath = ''
+  options: UpstreamToPrOptions
+
+  constructor(options: UpstreamToPrOptions) {
+    this.options = options
   }
 
   async run(): Promise<void> {
@@ -58,17 +50,17 @@ export class UpstreamToPr {
     await this.execGit(['push', '-u', 'origin', branch])
 
     const context = github.context
-    const octokit = github.getOctokit(this.token)
+    const octokit = github.getOctokit(this.options.token)
     const {data: pullRequest} = await octokit.rest.pulls.create({
       ...context.repo,
       title: `Upstream ${refName} (revision ${revHead})`,
       head: branch,
-      base: this.currentBranch,
+      base: this.options.currentBranch,
       body: `Auto-generated pull request.`
     })
     core.info(`Pull request created: ${pullRequest.url}.`)
 
-    if (!this.keepOld) {
+    if (!this.options.keepOld) {
       for (const oldBranch of branches.stdout.split('\n')) {
         const c = oldBranch.trim().replace('remotes/origin/', '')
         if (c.startsWith('upstream-to-pr/rev-') && c !== branch) {
@@ -80,43 +72,43 @@ export class UpstreamToPr {
   }
 
   async fetchHEAD(): Promise<string> {
-    if (this.upstreamTag) {
-      core.info(`Checking ${this.upstreamRepository} for newer tags...`)
+    if (this.options.upstreamTag) {
+      core.info(`Checking ${this.options.upstreamRepository} for newer tags...`)
       return `tag ${await this.fetchTags()}`
     } else {
       core.info(
-        `Checking ${this.upstreamRepository}@${this.upstreamBranch} for changes...`
+        `Checking ${this.options.upstreamRepository}@${this.options.upstreamBranch} for changes...`
       )
       await this.execGit([
         'fetch',
-        this.upstreamRepository,
-        this.upstreamBranch
+        this.options.upstreamRepository,
+        this.options.upstreamBranch
       ])
-      return `branch ${this.upstreamBranch}`
+      return `branch ${this.options.upstreamBranch}`
     }
   }
 
   async parseOwnerRepo(): Promise<[string, string]> {
     const matches =
-      this.upstreamRepository.match(
+      this.options.upstreamRepository.match(
         /github.com:([a-zA-Z0-9_-]+?)\/([a-zA-Z0-9_-]+)/
       ) ||
-      this.upstreamRepository.match(
+      this.options.upstreamRepository.match(
         /github.com\/([a-zA-Z0-9_-]+?)\/([a-zA-Z0-9_-]+)/
       )
     if (!matches) {
       throw new Error(
-        `Could not parse ${this.upstreamRepository} - only github.com repositories supported for upstream-tag`
+        `Could not parse ${this.options.upstreamRepository} - only github.com repositories supported for upstream-tag`
       )
     }
     return [matches[1], matches[2]]
   }
 
   async fetchTags(): Promise<string> {
-    const octokit = github.getOctokit(this.token)
+    const octokit = github.getOctokit(this.options.token)
     const [owner, repo] = await this.parseOwnerRepo()
     const res = await octokit.request(`GET /repos/${owner}/${repo}/tags`)
-    const re = new RegExp(`${this.upstreamTag}$`)
+    const re = new RegExp(`${this.options.upstreamTag}$`)
     let tagName = null
     for (const tag of res.data) {
       if (tag.name.match(re)) {
@@ -126,7 +118,7 @@ export class UpstreamToPr {
     }
     if (tagName) {
       core.info(`Updating to tag ${tagName}...`)
-      await this.execGit(['fetch', this.upstreamRepository, tagName])
+      await this.execGit(['fetch', this.options.upstreamRepository, tagName])
     } else {
       core.info(`No matching tags found, ignoring.`)
     }

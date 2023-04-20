@@ -1,4 +1,4 @@
-import {UpstreamToPr} from '../src/upstream-to-pr'
+import {UpstreamToPr, UpstreamToPrOptions} from '../src/upstream-to-pr'
 import * as process from 'process'
 import * as exec from '@actions/exec'
 import * as core from '@actions/core'
@@ -6,22 +6,49 @@ import * as github from '@actions/github'
 
 const mExec = jest.spyOn(exec, 'exec').mockImplementation()
 const mInfo = jest.spyOn(core, 'info').mockImplementation()
+process.env['GITHUB_REPOSITORY'] = 'xxx'
 jest.spyOn(core, 'debug').mockImplementation()
 
+// default options based on action.yaml
+const defaultOptions: UpstreamToPrOptions = {
+  upstreamRepository: 'http://github.com/god/world.git',
+  upstreamBranch: 'main',
+  token: 'xXx',
+  currentBranch: 'main',
+  upstreamTag: '',
+  keepOld: false
+}
+
+function gitMock(opts: {branchList?: string; revParse?: string | null}) {
+  return async (...args: any[]) => {
+    if (args[1]) {
+      switch (args[1][0]) {
+        case 'rev-list':
+          args[2]?.listeners?.stdout!(Buffer.from('x'))
+          break
+        case 'rev-parse':
+          if (opts.revParse !== null) {
+            args[2]?.listeners?.stdout!(Buffer.from(opts.revParse ?? 'bababa'))
+          }
+          break
+        case 'branch':
+          args[2]?.listeners?.stdout!(
+            Buffer.from(opts.branchList ?? 'upstream-to-pr/rev-\n')
+          )
+          break
+      }
+    }
+    return 0
+  }
+}
+
 describe('test upstream-to-pr with branch', () => {
-  const firstInfoLine = 'Checking http://example.com/a.git@main for changes...'
-  const runArgs: [string, string, string, string, string, boolean] = [
-    'http://example.com/a.git',
-    'main',
-    'xXx',
-    'main',
-    '',
-    false
-  ]
+  const firstInfoLine =
+    'Checking http://github.com/god/world.git@main for changes...'
 
   it('does nothing if no upstream changes', async () => {
     mExec.mockResolvedValue(0)
-    await new UpstreamToPr(...runArgs).run()
+    await new UpstreamToPr(defaultOptions).run()
     // fetch, rev-list
     expect(mExec).toBeCalledTimes(2)
     expect(mInfo).toBeCalledTimes(2)
@@ -30,20 +57,8 @@ describe('test upstream-to-pr with branch', () => {
   })
 
   it('does nothing if branch already exists', async () => {
-    mExec.mockImplementation(async (...args) => {
-      if (args[1]) {
-        switch (args[1][0]) {
-          case 'rev-list':
-            args[2]?.listeners?.stdout!(Buffer.from('x'))
-            break
-          case 'branch':
-            args[2]?.listeners?.stdout!(Buffer.from('upstream-to-pr/rev-\n'))
-            break
-        }
-      }
-      return 0
-    })
-    await new UpstreamToPr(...runArgs).run()
+    mExec.mockImplementation(gitMock({revParse: null}))
+    await new UpstreamToPr(defaultOptions).run()
     // fetch, rev-list, rev-parse, branch
     expect(mExec).toBeCalledTimes(4)
     expect(mInfo).toBeCalledTimes(2)
@@ -52,27 +67,11 @@ describe('test upstream-to-pr with branch', () => {
   })
 
   it('creates PR if branch is new', async () => {
-    process.env['GITHUB_REPOSITORY'] = 'xxx'
-    mExec.mockImplementation(async (...args) => {
-      if (args[1]) {
-        switch (args[1][0]) {
-          case 'rev-list':
-            args[2]?.listeners?.stdout!(Buffer.from('x'))
-            break
-          case 'rev-parse':
-            args[2]?.listeners?.stdout!(Buffer.from('bababa'))
-            break
-          case 'branch':
-            args[2]?.listeners?.stdout!(
-              Buffer.from(
-                'upstream-to-pr/rev-\nother/branch\nupstream-to-pr/rev-xx\n'
-              )
-            )
-            break
-        }
-      }
-      return 0
-    })
+    mExec.mockImplementation(
+      gitMock({
+        branchList: 'upstream-to-pr/rev-\nother/branch\nupstream-to-pr/rev-xx\n'
+      })
+    )
     const octoMock = github.getOctokit('x')
     const createMock = jest
       .spyOn(octoMock.rest.pulls, 'create')
@@ -82,7 +81,7 @@ describe('test upstream-to-pr with branch', () => {
         }
       } as any)
     jest.spyOn(github, 'getOctokit').mockReturnValue(octoMock)
-    await new UpstreamToPr(...runArgs).run()
+    await new UpstreamToPr(defaultOptions).run()
     // fetch, rev-list, rev-parse, branch, checkout, push, push :, push :
     expect(mExec).toBeCalledTimes(8)
     expect(mExec).toHaveBeenNthCalledWith(
@@ -123,27 +122,11 @@ describe('test upstream-to-pr with branch', () => {
   })
 
   it('creates PR if branch is new and keep old PRs', async () => {
-    process.env['GITHUB_REPOSITORY'] = 'xxx'
-    mExec.mockImplementation(async (...args) => {
-      if (args[1]) {
-        switch (args[1][0]) {
-          case 'rev-list':
-            args[2]?.listeners?.stdout!(Buffer.from('x'))
-            break
-          case 'rev-parse':
-            args[2]?.listeners?.stdout!(Buffer.from('bababa'))
-            break
-          case 'branch':
-            args[2]?.listeners?.stdout!(
-              Buffer.from(
-                'upstream-to-pr/rev-\nother/branch\nupstream-to-pr/rev-xx\n'
-              )
-            )
-            break
-        }
-      }
-      return 0
-    })
+    mExec.mockImplementation(
+      gitMock({
+        branchList: 'upstream-to-pr/rev-\nother/branch\nupstream-to-pr/rev-xx\n'
+      })
+    )
     const octoMock = github.getOctokit('x')
     const createMock = jest
       .spyOn(octoMock.rest.pulls, 'create')
@@ -153,9 +136,8 @@ describe('test upstream-to-pr with branch', () => {
         }
       } as any)
     jest.spyOn(github, 'getOctokit').mockReturnValue(octoMock)
-    const newRunArgs: typeof runArgs = [...runArgs]
-    newRunArgs[5] = true
-    await new UpstreamToPr(...newRunArgs).run()
+    const newRunArgs: UpstreamToPrOptions = {...defaultOptions, keepOld: true}
+    await new UpstreamToPr(newRunArgs).run()
     // fetch, rev-list, rev-parse, branch, checkout, push
     expect(mExec).toBeCalledTimes(6)
     expect(mInfo).toBeCalledTimes(2)
@@ -178,66 +160,46 @@ describe('test upstream-to-pr with branch', () => {
 
 describe('test upstream-to-pr owner and repo parser', () => {
   it('parses repo and owner from URL', async () => {
-    const [owner, repo] = await new UpstreamToPr(
-      'http://github.com/god/world.git',
-      '',
-      '',
-      '',
-      '',
-      false
-    ).parseOwnerRepo()
+    const [owner, repo] = await new UpstreamToPr({
+      ...defaultOptions,
+      upstreamRepository: 'http://github.com/god/world.git'
+    }).parseOwnerRepo()
     expect(owner).toBe('god')
     expect(repo).toBe('world')
   })
 
   it('parses repo and owner from URL with trailing slash', async () => {
-    const [owner, repo] = await new UpstreamToPr(
-      'http://github.com/god/world/',
-      '',
-      '',
-      '',
-      '',
-      false
-    ).parseOwnerRepo()
+    const [owner, repo] = await new UpstreamToPr({
+      ...defaultOptions,
+      upstreamRepository: 'http://github.com/god/world/'
+    }).parseOwnerRepo()
     expect(owner).toBe('god')
     expect(repo).toBe('world')
   })
 
   it('parses repo and owner from URL without .git', async () => {
-    const [owner, repo] = await new UpstreamToPr(
-      'git@github.com:god/world',
-      '',
-      '',
-      '',
-      '',
-      false
-    ).parseOwnerRepo()
+    const [owner, repo] = await new UpstreamToPr({
+      ...defaultOptions,
+      upstreamRepository: 'http://github.com/god/world'
+    }).parseOwnerRepo()
     expect(owner).toBe('god')
     expect(repo).toBe('world')
   })
 
   it('parses repo and owner from GIT URL', async () => {
-    const [owner, repo] = await new UpstreamToPr(
-      'git@github.com:god/world.git',
-      '',
-      '',
-      '',
-      '',
-      false
-    ).parseOwnerRepo()
+    const [owner, repo] = await new UpstreamToPr({
+      ...defaultOptions,
+      upstreamRepository: 'git@github.com:god/world.git'
+    }).parseOwnerRepo()
     expect(owner).toBe('god')
     expect(repo).toBe('world')
   })
 
   it('errors on non-github URL', async () => {
-    const promise = new UpstreamToPr(
-      'git@gitlab.com:god/world.git',
-      '',
-      '',
-      '',
-      '',
-      false
-    ).parseOwnerRepo()
+    const promise = new UpstreamToPr({
+      ...defaultOptions,
+      upstreamRepository: 'git@gitlab.com:god/world.git'
+    }).parseOwnerRepo()
     expect(promise).rejects.toThrow(
       `Could not parse git@gitlab.com:god/world.git - only github.com repositories supported for upstream-tag`
     )
@@ -265,14 +227,10 @@ describe('test upstream-to-pr update-tag', () => {
   jest.spyOn(github, 'getOctokit').mockReturnValue(octoMock)
 
   it('fetches matching tag', async () => {
-    await new UpstreamToPr(
-      'http://github.com/god/world.git',
-      'main',
-      'xXx',
-      'main',
-      'v1\\.\\d+\\.\\d+',
-      false
-    ).fetchHEAD()
+    await new UpstreamToPr({
+      ...defaultOptions,
+      upstreamTag: 'v1\\.\\d+\\.\\d+'
+    }).fetchHEAD()
     expect(mInfo).toBeCalledTimes(2)
     expect(mInfo).toHaveBeenNthCalledWith(1, firstInfoLine)
     expect(mInfo).toHaveBeenNthCalledWith(2, 'Updating to tag v1.10.1...')
@@ -283,14 +241,10 @@ describe('test upstream-to-pr update-tag', () => {
   })
 
   it('fetches any tag', async () => {
-    await new UpstreamToPr(
-      'http://github.com/god/world.git',
-      'main',
-      'xXx',
-      'main',
-      'v.*',
-      false
-    ).fetchHEAD()
+    await new UpstreamToPr({
+      ...defaultOptions,
+      upstreamTag: 'v.*'
+    }).fetchHEAD()
     expect(mInfo).toBeCalledTimes(2)
     expect(mInfo).toHaveBeenNthCalledWith(1, firstInfoLine)
     expect(mInfo).toHaveBeenNthCalledWith(2, 'Updating to tag v1.12.1-dev...')
@@ -301,14 +255,10 @@ describe('test upstream-to-pr update-tag', () => {
   })
 
   it('skips on missing match', async () => {
-    await new UpstreamToPr(
-      'http://github.com/god/world.git',
-      'main',
-      'xXx',
-      'main',
-      'v3..*',
-      false
-    ).fetchHEAD()
+    await new UpstreamToPr({
+      ...defaultOptions,
+      upstreamTag: 'v3..*'
+    }).fetchHEAD()
     expect(mInfo).toBeCalledTimes(2)
     expect(mInfo).toHaveBeenNthCalledWith(1, firstInfoLine)
     expect(mInfo).toHaveBeenNthCalledWith(
@@ -321,23 +271,7 @@ describe('test upstream-to-pr update-tag', () => {
   })
 
   it('creates PR if tag is new', async () => {
-    process.env['GITHUB_REPOSITORY'] = 'xxx'
-    mExec.mockImplementation(async (...args) => {
-      if (args[1]) {
-        switch (args[1][0]) {
-          case 'rev-list':
-            args[2]?.listeners?.stdout!(Buffer.from('x'))
-            break
-          case 'rev-parse':
-            args[2]?.listeners?.stdout!(Buffer.from('bababa'))
-            break
-          case 'branch':
-            args[2]?.listeners?.stdout!(Buffer.from('upstream-to-pr/rev-\n'))
-            break
-        }
-      }
-      return 0
-    })
+    mExec.mockImplementation(gitMock({}))
     const createMock = jest
       .spyOn(octoMock.rest.pulls, 'create')
       .mockResolvedValue({
@@ -345,14 +279,10 @@ describe('test upstream-to-pr update-tag', () => {
           url: 'http://git.url/to/pr'
         }
       } as any)
-    await new UpstreamToPr(
-      'http://github.com/god/world.git',
-      'main',
-      'xXx',
-      'main',
-      'v.*',
-      false
-    ).run()
+    await new UpstreamToPr({
+      ...defaultOptions,
+      upstreamTag: 'v.*'
+    }).run()
     // fetch, rev-list, rev-parse, branch, checkout, push
     expect(mExec).toBeCalledTimes(7)
     expect(mExec).toHaveBeenNthCalledWith(
