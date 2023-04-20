@@ -148,7 +148,7 @@ class UpstreamToPr {
             for (const oldBranch of branches.stdout.split('\n')) {
                 const c = oldBranch.trim().replace('remotes/origin/', '');
                 if (c.startsWith('upstream-to-pr/rev-') && c !== branch) {
-                    this.execGit(['push', `:${c}`]);
+                    this.execGit(['push', 'origin', `:${c}`]);
                 }
             }
         });
