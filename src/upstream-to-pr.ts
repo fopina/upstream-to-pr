@@ -69,7 +69,7 @@ export class UpstreamToPr {
   async fetchHEAD(): Promise<string> {
     if (this.upstreamTag) {
       core.info(`Checking ${this.upstreamRepository} for newer tags...`)
-      return `tag ${this.fetchTags()}`
+      return `tag ${await this.fetchTags()}`
     } else {
       core.info(
         `Checking ${this.upstreamRepository}@${this.upstreamBranch} for changes...`

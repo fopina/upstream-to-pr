@@ -93,7 +93,7 @@ describe('test upstream-to-pr with branch', () => {
       head: 'upstream-to-pr/rev-bababa',
       owner: 'xxx',
       repo: undefined,
-      title: 'Upstream revision bababa'
+      title: 'Upstream branch main (revision bababa)'
     })
   })
 })
@@ -282,7 +282,7 @@ describe('test upstream-to-pr update-tag', () => {
       head: 'upstream-to-pr/rev-bababa',
       owner: 'xxx',
       repo: undefined,
-      title: 'Upstream revision bababa'
+      title: 'Upstream tag v1.12.1-dev (revision bababa)'
     })
   })
 })

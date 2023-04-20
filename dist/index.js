@@ -149,7 +149,7 @@ class UpstreamToPr {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.upstreamTag) {
                 core.info(`Checking ${this.upstreamRepository} for newer tags...`);
-                return `tag ${this.fetchTags()}`;
+                return `tag ${yield this.fetchTags()}`;
             }
             else {
                 core.info(`Checking ${this.upstreamRepository}@${this.upstreamBranch} for changes...`);
