@@ -135,7 +135,6 @@ class UpstreamToPr {
             // check if branch already exists - this require a clone with full fetch depth
             // `fetch-depth: 0` in github checkout action
             const branches = yield this.execGit(['branch', '-a']);
-            core.info(branches.stdout);
             if (branches.stdout.includes(`${branch}\n`)) {
                 core.info('Branch already exists, skipping.');
                 return;
@@ -146,6 +145,12 @@ class UpstreamToPr {
             const octokit = github.getOctokit(this.token);
             const { data: pullRequest } = yield octokit.rest.pulls.create(Object.assign(Object.assign({}, context.repo), { title: `Upstream ${refName} (revision ${revHead})`, head: branch, base: this.currentBranch, body: `Auto-generated pull request.` }));
             core.info(`Pull request created: ${pullRequest.url}.`);
+            for (const oldBranch of branches.stdout.split('\n')) {
+                const c = oldBranch.trim().replace('remotes/origin/', '');
+                if (c.startsWith('upstream-to-pr/rev-') && c !== branch) {
+                    this.execGit(['push', `:${c}`]);
+                }
+            }
         });
     }
     fetchHEAD() {

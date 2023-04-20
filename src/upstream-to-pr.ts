@@ -49,7 +49,6 @@ export class UpstreamToPr {
     // check if branch already exists - this require a clone with full fetch depth
     // `fetch-depth: 0` in github checkout action
     const branches = await this.execGit(['branch', '-a'])
-    core.info(branches.stdout)
     if (branches.stdout.includes(`${branch}\n`)) {
       core.info('Branch already exists, skipping.')
       return
@@ -68,6 +67,13 @@ export class UpstreamToPr {
       body: `Auto-generated pull request.`
     })
     core.info(`Pull request created: ${pullRequest.url}.`)
+
+    for (const oldBranch of branches.stdout.split('\n')) {
+      const c = oldBranch.trim().replace('remotes/origin/', '')
+      if (c.startsWith('upstream-to-pr/rev-') && c !== branch) {
+        this.execGit(['push', `:${c}`])
+      }
+    }
   }
 
   async fetchHEAD(): Promise<string> {
