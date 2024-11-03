@@ -214,7 +214,7 @@ describe('test upstream-to-pr update-tag', () => {
   const firstInfoLine =
     'Checking http://github.com/god/world.git for newer tags...'
   const octoMock = github.getOctokit('x')
-  const requestMock = jest.spyOn(octoMock, 'request').mockResolvedValue({
+  const requestMock = jest.spyOn(octoMock, 'listTags').mockResolvedValue({
     status: 200,
     data: [
       {
