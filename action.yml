@@ -17,7 +17,7 @@ inputs:
     required: false
   keep-old:
     description: 'delete older PRs (and branches) when a more recent PR is open'
-    default: false
+    default: 'false'
 
 runs:
   using: 'node20'
