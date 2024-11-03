@@ -212,7 +212,11 @@ ${changeList}` }));
         return __awaiter(this, void 0, void 0, function* () {
             const octokit = github.getOctokit(this.options.token);
             const [owner, repo] = yield this.parseOwnerRepo();
-            const res = yield octokit.request(`GET /repos/${owner}/${repo}/tags`);
+            const res = yield octokit.rest.repos.listTags({
+                owner,
+                repo,
+                orderBy: { field: 'tagger.date', direction: 'desc' }
+            });
             const re = new RegExp(`${this.options.upstreamTag}$`);
             let tagName = null;
             for (const tag of res.data) {
@@ -224,11 +228,12 @@ ${changeList}` }));
             if (tagName) {
                 core.info(`Updating to tag ${tagName}...`);
                 yield this.execGit(['fetch', this.options.upstreamRepository, tagName]);
+                return tagName;
             }
             else {
                 core.info(`No matching tags found, ignoring.`);
+                return '';
             }
-            return tagName;
         });
     }
     execGit(args, allowAllExitCodes = false, silent = false, customListeners = {}) {
