@@ -138,7 +138,11 @@ ${changeList}`
   async fetchTags(): Promise<string> {
     const octokit = github.getOctokit(this.options.token)
     const [owner, repo] = await this.parseOwnerRepo()
-    const res = await octokit.rest.repos.listTags({ owner: owner, repo: repo, orderBy: { field: 'tagger.date', direction: 'desc' } });
+    const res = await octokit.rest.repos.listTags({
+      owner,
+      repo,
+      orderBy: {field: 'tagger.date', direction: 'desc'}
+    })
     const re = new RegExp(`${this.options.upstreamTag}$`)
     let tagName = null
     for (const tag of res.data) {
@@ -153,7 +157,7 @@ ${changeList}`
       return tagName
     } else {
       core.info(`No matching tags found, ignoring.`)
-      return ""
+      return ''
     }
   }
 
