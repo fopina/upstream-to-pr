@@ -214,7 +214,7 @@ describe('test upstream-to-pr update-tag', () => {
   const firstInfoLine =
     'Checking http://github.com/god/world.git for newer tags...'
   const octoMock = github.getOctokit('x')
-  const requestMock = jest.spyOn(octoMock, 'listTags').mockResolvedValue({
+  const requestMock = jest.spyOn(octoMock.rest.repos, 'listTags').mockResolvedValue({
     status: 200,
     data: [
       {
@@ -241,7 +241,7 @@ describe('test upstream-to-pr update-tag', () => {
     // fetch
     expect(mExec).toBeCalledTimes(1)
     expect(requestMock).toHaveBeenCalledTimes(1)
-    expect(requestMock).toHaveBeenCalledWith('GET /repos/god/world/tags')
+    expect(requestMock).toHaveBeenCalledWith({"orderBy": {"direction": "desc", "field": "tagger.date"}, "owner": "god", "repo": "world"})
   })
 
   it('fetches any tag', async () => {
@@ -255,7 +255,7 @@ describe('test upstream-to-pr update-tag', () => {
     // fetch
     expect(mExec).toBeCalledTimes(1)
     expect(requestMock).toHaveBeenCalledTimes(1)
-    expect(requestMock).toHaveBeenCalledWith('GET /repos/god/world/tags')
+    expect(requestMock).toHaveBeenCalledWith({"orderBy": {"direction": "desc", "field": "tagger.date"}, "owner": "god", "repo": "world"})
   })
 
   it('skips on missing match', async () => {
@@ -271,7 +271,7 @@ describe('test upstream-to-pr update-tag', () => {
     )
     expect(mExec).not.toHaveBeenCalled()
     expect(requestMock).toHaveBeenCalledTimes(1)
-    expect(requestMock).toHaveBeenCalledWith('GET /repos/god/world/tags')
+    expect(requestMock).toHaveBeenCalledWith({"orderBy": {"direction": "desc", "field": "tagger.date"}, "owner": "god", "repo": "world"})
   })
 
   it('creates PR if tag is new', async () => {

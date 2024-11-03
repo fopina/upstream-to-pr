@@ -150,10 +150,11 @@ ${changeList}`
     if (tagName) {
       core.info(`Updating to tag ${tagName}...`)
       await this.execGit(['fetch', this.options.upstreamRepository, tagName])
+      return tagName
     } else {
       core.info(`No matching tags found, ignoring.`)
+      return ""
     }
-    return tagName
   }
 
   async execGit(
