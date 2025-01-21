@@ -100,6 +100,7 @@ export class UpstreamToPr {
 ${changeList}`
     })
     core.info(`Pull request created: ${pullRequest.url}.`)
+    core.setOutput("pull-request-url", pullRequest.url)
   }
 
   async fetchHEAD(): Promise<string> {
