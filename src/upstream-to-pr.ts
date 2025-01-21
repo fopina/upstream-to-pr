@@ -3,6 +3,12 @@ import * as exec from '@actions/exec'
 import * as github from '@actions/github'
 import * as io from '@actions/io'
 
+type PullRequest = {
+  url: string
+  id: number
+  number: number
+}
+
 const BRANCH_PREFIX = 'upstream-to-pr/rev-'
 // GitHub PRs messages have a max body size limit of 65536
 const PR_BODY_MAX_CHARACTERS = 60000
@@ -14,6 +20,8 @@ export interface UpstreamToPrOptions {
   currentBranch: string
   upstreamTag: string
   keepOld: boolean
+  reviewers: string[]
+  team_reviewers: string[]
 }
 
 export class UpstreamToPr {
@@ -100,7 +108,43 @@ export class UpstreamToPr {
 ${changeList}`
     })
     core.info(`Pull request created: ${pullRequest.url}.`)
-    core.setOutput("pull-request-url", pullRequest.url)
+    core.setOutput('pull-request-url', pullRequest.url)
+
+    core.info(`Requesting reviewers for pull request: ${pullRequest.url}.`)
+    core.info(
+      `Reviewers: ${this.options.reviewers}, team_reviewers: ${this.options.team_reviewers}`
+    )
+    if (
+      this.options.reviewers.length > 0 ||
+      this.options.team_reviewers.length > 0
+    ) {
+      await this.requestReviewers(pullRequest as PullRequest)
+    }
+  }
+
+  async requestReviewers(pullRequest: PullRequest): Promise<void> {
+    const context = github.context
+    const octokit = github.getOctokit(this.options.token)
+    const reviewers = this.options.reviewers
+    const team_reviewers = this.options.team_reviewers
+
+    const review_payload: {reviewers?: string[]; team_reviewers?: string[]} = {}
+    if (reviewers.length > 0) {
+      review_payload['reviewers'] = reviewers
+    }
+    if (team_reviewers.length > 0) {
+      review_payload['team_reviewers'] = team_reviewers
+    }
+
+    await octokit.rest.pulls.requestReviewers({
+      ...context.repo,
+      pull_number: pullRequest.number,
+      ...review_payload
+    })
+
+    core.info(
+      `Reviewers requested for pull request: ${pullRequest.url}. Reviewers: ${reviewers}, team_reviewers: ${team_reviewers}`
+    )
   }
 
   async fetchHEAD(): Promise<string> {

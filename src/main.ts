@@ -10,8 +10,13 @@ async function run(): Promise<void> {
     const upstreamBranch: string = core.getInput('upstream-branch') || 'main'
     const upstreamTag: string = core.getInput('upstream-tag')
     const keepOld: boolean = core.getBooleanInput('keep-old')
+    const reviewers: string[] = core.getInput('reviewers').split(',')
+    const team_reviewers: string[] = core.getInput('team_reviewers').split(',')
     // github.context does not expose REF_NAME nor HEAD_REF, just use env...
     // try GITHUB_HEAD_REF (set if it is a PR) and fallback to GITHUB_REF_NAME
+    core.info(`Reviewers: ${reviewers}`)
+    core.info(`Team reviewers: ${team_reviewers}`)
+
     const currentBranch =
       process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || ''
 
@@ -21,7 +26,9 @@ async function run(): Promise<void> {
       token,
       currentBranch,
       upstreamTag,
-      keepOld
+      keepOld,
+      reviewers,
+      team_reviewers
     }).run()
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)

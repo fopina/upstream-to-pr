@@ -16,7 +16,9 @@ const defaultOptions: UpstreamToPrOptions = {
   token: 'xXx',
   currentBranch: 'main',
   upstreamTag: '',
-  keepOld: false
+  keepOld: false,
+  reviewers: [],
+  team_reviewers: []
 }
 
 function gitMock(opts: {branchList?: string; revParse?: string | null}) {
