@@ -14,8 +14,6 @@ async function run(): Promise<void> {
     const team_reviewers: string[] = core.getInput('team_reviewers').split(',')
     // github.context does not expose REF_NAME nor HEAD_REF, just use env...
     // try GITHUB_HEAD_REF (set if it is a PR) and fallback to GITHUB_REF_NAME
-    core.info(`Reviewers: ${reviewers}`)
-    core.info(`Team reviewers: ${team_reviewers}`)
 
     const currentBranch =
       process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || ''

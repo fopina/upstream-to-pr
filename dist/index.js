@@ -55,8 +55,6 @@ function run() {
             const team_reviewers = core.getInput('team_reviewers').split(',');
             // github.context does not expose REF_NAME nor HEAD_REF, just use env...
             // try GITHUB_HEAD_REF (set if it is a PR) and fallback to GITHUB_REF_NAME
-            core.info(`Reviewers: ${reviewers}`);
-            core.info(`Team reviewers: ${team_reviewers}`);
             const currentBranch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || '';
             yield new upstream_to_pr_1.UpstreamToPr({
                 upstreamRepository,
@@ -186,10 +184,9 @@ class UpstreamToPr {
 ${changeList}` }));
             core.info(`Pull request created: ${pullRequest.url}.`);
             core.setOutput('pull-request-url', pullRequest.url);
-            core.info(`Requesting reviewers for pull request: ${pullRequest.url}.`);
-            core.info(`Reviewers: ${this.options.reviewers}, team_reviewers: ${this.options.team_reviewers}`);
             if (this.options.reviewers.length > 0 ||
                 this.options.team_reviewers.length > 0) {
+                core.info(`Requesting reviewers for pull request: ${pullRequest.url}.`);
                 yield this.requestReviewers(pullRequest);
             }
         });
