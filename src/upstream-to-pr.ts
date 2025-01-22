@@ -3,9 +3,8 @@ import * as exec from '@actions/exec'
 import * as github from '@actions/github'
 import * as io from '@actions/io'
 
-type PullRequest = {
+export type PullRequest = {
   url: string
-  id: number
   number: number
 }
 
