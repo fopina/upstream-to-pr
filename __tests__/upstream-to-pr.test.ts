@@ -1,4 +1,8 @@
-import {UpstreamToPr, UpstreamToPrOptions} from '../src/upstream-to-pr'
+import {
+  UpstreamToPr,
+  UpstreamToPrOptions,
+  PullRequest
+} from '../src/upstream-to-pr'
 import * as process from 'process'
 import * as exec from '@actions/exec'
 import * as core from '@actions/core'
@@ -16,7 +20,9 @@ const defaultOptions: UpstreamToPrOptions = {
   token: 'xXx',
   currentBranch: 'main',
   upstreamTag: '',
-  keepOld: false
+  keepOld: false,
+  reviewers: [],
+  team_reviewers: []
 }
 
 function gitMock(opts: {branchList?: string; revParse?: string | null}) {
@@ -77,7 +83,8 @@ describe('test upstream-to-pr with branch', () => {
       .spyOn(octoMock.rest.pulls, 'create')
       .mockResolvedValue({
         data: {
-          url: 'http://git.url/to/pr'
+          url: 'http://git.url/to/pr',
+          number: 123
         }
       } as any)
     jest.spyOn(github, 'getOctokit').mockReturnValue(octoMock)
@@ -134,7 +141,8 @@ x`,
       .spyOn(octoMock.rest.pulls, 'create')
       .mockResolvedValue({
         data: {
-          url: 'http://git.url/to/pr'
+          url: 'http://git.url/to/pr',
+          number: 123
         }
       } as any)
     jest.spyOn(github, 'getOctokit').mockReturnValue(octoMock)
@@ -294,7 +302,8 @@ describe('test upstream-to-pr update-tag', () => {
       .spyOn(octoMock.rest.pulls, 'create')
       .mockResolvedValue({
         data: {
-          url: 'http://git.url/to/pr'
+          url: 'http://git.url/to/pr',
+          number: 123
         }
       } as any)
     await new UpstreamToPr({
@@ -342,7 +351,8 @@ describe('test upstream-to-pr createPR', () => {
     .spyOn(octoMock.rest.pulls, 'create')
     .mockResolvedValue({
       data: {
-        url: 'http://git.url/to/pr'
+        url: 'http://git.url/to/pr',
+        number: 123
       }
     } as any)
   const createPRArgs: [string, string, string] = [
@@ -409,6 +419,79 @@ Commit summary omitted as it exceeds maximum message size.`,
       owner: 'xxx',
       repo: undefined,
       title: 'Upstream branch main (revision bababa)'
+    })
+  })
+  it('reviewers list', async () => {
+    const reviewers = ['reviewer1', 'reviewer2']
+    const upstreamMock = new UpstreamToPr({
+      ...defaultOptions,
+      reviewers
+    })
+    const upstreamToPRRequestReviewerMock = jest.spyOn(
+      upstreamMock,
+      'requestReviewers'
+    )
+
+    await upstreamMock.createPR(...createPRArgs)
+    expect(mInfo).toBeCalledTimes(3)
+    expect(mInfo).toHaveBeenNthCalledWith(1, prLine)
+    expect(upstreamToPRRequestReviewerMock).toHaveBeenCalledWith({
+      number: 123,
+      url: 'http://git.url/to/pr'
+    })
+  })
+})
+
+describe('test upstream-to-pr requestReviewers', () => {
+  const prLine = 'Pull request created: http://git.url/to/pr.'
+  const octoMock = github.getOctokit('x')
+  jest.spyOn(github, 'getOctokit').mockReturnValue(octoMock)
+  const requestReviewerMock = jest
+    .spyOn(octoMock.rest.pulls, 'requestReviewers')
+    .mockResolvedValue({
+      data: {
+        url: 'http://git.url/to/pr',
+        number: 123
+      }
+    } as any)
+
+  const requestReviewersArgs: PullRequest = {
+    url: 'http://git.url/to/pr',
+    number: 123
+  }
+
+  it('reviewer list', async () => {
+    const reviewers = ['reviewer1', 'reviewer2']
+    const team_reviewers: string[] = []
+    const reviewersLine = `Reviewers requested for pull request: ${requestReviewersArgs.url}. Reviewers: ${reviewers}, team_reviewers: ${team_reviewers}`
+    await new UpstreamToPr({
+      ...defaultOptions,
+      reviewers
+    }).requestReviewers(requestReviewersArgs)
+    expect(mInfo).toBeCalledTimes(1)
+    expect(mInfo).toHaveBeenNthCalledWith(1, reviewersLine)
+    expect(requestReviewerMock).toHaveBeenCalledWith({
+      owner: 'xxx',
+      repo: undefined,
+      pull_number: 123,
+      reviewers
+    })
+  })
+  it('team reviewer list', async () => {
+    const reviewers: string[] = []
+    const team_reviewers = ['team1', 'team2']
+    const reviewersLine = `Reviewers requested for pull request: ${requestReviewersArgs.url}. Reviewers: ${reviewers}, team_reviewers: ${team_reviewers}`
+    await new UpstreamToPr({
+      ...defaultOptions,
+      team_reviewers
+    }).requestReviewers(requestReviewersArgs)
+    expect(mInfo).toBeCalledTimes(1)
+    expect(mInfo).toHaveBeenNthCalledWith(1, reviewersLine)
+    expect(requestReviewerMock).toHaveBeenCalledWith({
+      owner: 'xxx',
+      repo: undefined,
+      pull_number: 123,
+      team_reviewers
     })
   })
 })

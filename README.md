@@ -163,4 +163,69 @@ jobs:
           upstream-tag: 'v1\..*'
 ```
 
+#### Requesting reviewers or team reviewers
 
+`reviewers` and `team_reviewers` are optional parameters that expect a comma separated string with usernames or teams respectively.
+
+```yaml
+name: upstream to PR
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+    inputs: {}
+
+jobs:
+  autoupdate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT }}
+
+      - uses: fopina/upstream-to-pr@v1
+        with:
+          token: ${{ secrets.PAT }}
+          upstream-repository: https://github.com/surface-security/surface
+          upstream-tag: 'v1\.\d+\.\d+'
+          reviewers: person1,person2
+          team_reviewers: team1,team2
+```
+
+#### Getting PR API url
+
+Upstream to PR outputs the API URL as the `pull-request-url` variable for the created Pull Request so you can use it in other steps.
+
+```yaml
+name: upstream to PR
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+    inputs: {}
+
+jobs:
+  autoupdate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT }}
+
+      - uses: fopina/upstream-to-pr@v1
+        id: auto-pr
+        with:
+          token: ${{ secrets.PAT }}
+          upstream-repository: https://github.com/surface-security/surface
+          upstream-tag: 'v1\.\d+\.\d+'
+          reviewers: person1,person2
+          team_reviewers: team1,team2
+      
+      - name: Display output
+        run: |
+        echo "Pull Request API URL: ${{ steps.auto-pr.outputs.pull-request-url }}"
+```

@@ -51,6 +51,8 @@ function run() {
             const upstreamBranch = core.getInput('upstream-branch') || 'main';
             const upstreamTag = core.getInput('upstream-tag');
             const keepOld = core.getBooleanInput('keep-old');
+            const reviewers = core.getInput('reviewers').split(',');
+            const team_reviewers = core.getInput('team_reviewers').split(',');
             // github.context does not expose REF_NAME nor HEAD_REF, just use env...
             // try GITHUB_HEAD_REF (set if it is a PR) and fallback to GITHUB_REF_NAME
             const currentBranch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || '';
@@ -60,7 +62,9 @@ function run() {
                 token,
                 currentBranch,
                 upstreamTag,
-                keepOld
+                keepOld,
+                reviewers,
+                team_reviewers
             }).run();
         }
         catch (error) {
@@ -179,6 +183,29 @@ class UpstreamToPr {
 
 ${changeList}` }));
             core.info(`Pull request created: ${pullRequest.url}.`);
+            core.setOutput('pull-request-url', pullRequest.url);
+            if (this.options.reviewers.length > 0 ||
+                this.options.team_reviewers.length > 0) {
+                core.info(`Requesting reviewers for pull request: ${pullRequest.url}.`);
+                yield this.requestReviewers(pullRequest);
+            }
+        });
+    }
+    requestReviewers(pullRequest) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const context = github.context;
+            const octokit = github.getOctokit(this.options.token);
+            const reviewers = this.options.reviewers;
+            const team_reviewers = this.options.team_reviewers;
+            const review_payload = {};
+            if (reviewers.length > 0) {
+                review_payload['reviewers'] = reviewers;
+            }
+            if (team_reviewers.length > 0) {
+                review_payload['team_reviewers'] = team_reviewers;
+            }
+            yield octokit.rest.pulls.requestReviewers(Object.assign(Object.assign(Object.assign({}, context.repo), { pull_number: pullRequest.number }), review_payload));
+            core.info(`Reviewers requested for pull request: ${pullRequest.url}. Reviewers: ${reviewers}, team_reviewers: ${team_reviewers}`);
         });
     }
     fetchHEAD() {

@@ -18,7 +18,15 @@ inputs:
   keep-old:
     description: 'delete older PRs (and branches) when a more recent PR is open'
     default: 'false'
-
+  reviewers:
+    description: 'comma-separated list of reviewers for the PR'
+    required: false
+  team_reviewers:
+    description: 'comma-separated list of team reviewers for the PR'
+    required: false
+outputs:
+  pull-request-url: 
+    description: 'URL of the pull request created (if any)'
 runs:
   using: 'node20'
   main: 'dist/index.js'
