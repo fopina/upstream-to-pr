@@ -51,11 +51,13 @@ function run() {
             const upstreamBranch = core.getInput('upstream-branch') || 'main';
             const upstreamTag = core.getInput('upstream-tag');
             const keepOld = core.getBooleanInput('keep-old');
-            const reviewers = core.getInput('reviewers')
+            const reviewers = core
+                .getInput('reviewers')
                 .split(',')
                 .map(s => s.trim())
                 .filter(s => s);
-            const team_reviewers = core.getInput('team_reviewers')
+            const team_reviewers = core
+                .getInput('team_reviewers')
                 .split(',')
                 .map(s => s.trim())
                 .filter(s => s);
@@ -192,7 +194,7 @@ ${changeList}` }));
             core.setOutput('pull-request-url', pullRequest.url);
             if (this.options.reviewers.length > 0 ||
                 this.options.team_reviewers.length > 0) {
-                core.info(`Requesting reviewers for pull request: ${pullRequest.url}. Reviewers: ${this.options.reviewers.length} ${this.options.reviewers}, team_reviewers: ${this.options.team_reviewers.length} ${this.options.team_reviewers}`);
+                core.info(`Requesting reviewers for pull request: ${pullRequest.url}. Reviewers: ${this.options.reviewers}, team_reviewers: ${this.options.team_reviewers}`);
                 yield this.requestReviewers(pullRequest);
             }
         });
