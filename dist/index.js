@@ -51,8 +51,14 @@ function run() {
             const upstreamBranch = core.getInput('upstream-branch') || 'main';
             const upstreamTag = core.getInput('upstream-tag');
             const keepOld = core.getBooleanInput('keep-old');
-            const reviewers = core.getInput('reviewers').split(',');
-            const team_reviewers = core.getInput('team_reviewers').split(',');
+            const reviewers = core.getInput('reviewers')
+                .split(',')
+                .map(s => s.trim())
+                .filter(s => s);
+            const team_reviewers = core.getInput('team_reviewers')
+                .split(',')
+                .map(s => s.trim())
+                .filter(s => s);
             // github.context does not expose REF_NAME nor HEAD_REF, just use env...
             // try GITHUB_HEAD_REF (set if it is a PR) and fallback to GITHUB_REF_NAME
             const currentBranch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || '';
