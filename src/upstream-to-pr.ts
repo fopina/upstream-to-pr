@@ -114,7 +114,7 @@ ${changeList}`
       this.options.team_reviewers.length > 0
     ) {
       core.info(
-        `Requesting reviewers for pull request: ${pullRequest.url}. Reviewers: ${this.options.reviewers}, team_reviewers: ${this.options.team_reviewers}`
+        `Requesting reviewers for pull request: ${pullRequest.url}. Reviewers: ${this.options.reviewers.length} ${this.options.reviewers}, team_reviewers: ${this.options.team_reviewers.length} ${this.options.team_reviewers}`
       )
       await this.requestReviewers(pullRequest as PullRequest)
     }
