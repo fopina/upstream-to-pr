@@ -109,15 +109,15 @@ ${changeList}`
     core.info(`Pull request created: ${pullRequest.url}.`)
     core.setOutput('pull-request-url', pullRequest.url)
 
-    /*
     if (
       this.options.reviewers.length > 0 ||
       this.options.team_reviewers.length > 0
     ) {
-      core.info(`Requesting reviewers for pull request: ${pullRequest.url}.`)
+      core.info(
+        `Requesting reviewers for pull request: ${pullRequest.url}. Reviewers: ${this.options.reviewers}, team_reviewers: ${this.options.team_reviewers}`
+      )
       await this.requestReviewers(pullRequest as PullRequest)
     }
-    */
   }
 
   async requestReviewers(pullRequest: PullRequest): Promise<void> {
@@ -139,10 +139,6 @@ ${changeList}`
       pull_number: pullRequest.number,
       ...review_payload
     })
-
-    core.info(
-      `Reviewers requested for pull request: ${pullRequest.url}. Reviewers: ${reviewers}, team_reviewers: ${team_reviewers}`
-    )
   }
 
   async fetchHEAD(): Promise<string> {

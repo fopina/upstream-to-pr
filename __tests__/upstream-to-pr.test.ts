@@ -355,6 +355,10 @@ describe('test upstream-to-pr createPR', () => {
         number: 123
       }
     } as any)
+  const upstreamToPRRequestReviewerMock = jest.spyOn(
+    octoMock.rest.pulls,
+    'requestReviewers'
+  )
   const createPRArgs: [string, string, string] = [
     'branch main',
     'bababa',
@@ -420,28 +424,27 @@ Commit summary omitted as it exceeds maximum message size.`,
       repo: undefined,
       title: 'Upstream branch main (revision bababa)'
     })
+    expect(upstreamToPRRequestReviewerMock).toBeCalledTimes(0)
   })
-  /*
   it('reviewers list', async () => {
     const reviewers = ['reviewer1', 'reviewer2']
+    const reviewersLine = `Requesting reviewers for pull request: http://git.url/to/pr. Reviewers: reviewer1,reviewer2, team_reviewers: `
     const upstreamMock = new UpstreamToPr({
       ...defaultOptions,
       reviewers
     })
-    const upstreamToPRRequestReviewerMock = jest.spyOn(
-      upstreamMock,
-      'requestReviewers'
-    )
 
     await upstreamMock.createPR(...createPRArgs)
-    expect(mInfo).toBeCalledTimes(3)
+    expect(mInfo).toBeCalledTimes(2)
     expect(mInfo).toHaveBeenNthCalledWith(1, prLine)
+    expect(mInfo).toHaveBeenNthCalledWith(2, reviewersLine)
     expect(upstreamToPRRequestReviewerMock).toHaveBeenCalledWith({
-      number: 123,
-      url: 'http://git.url/to/pr'
+      owner: 'xxx',
+      pull_number: 123,
+      repo: undefined,
+      reviewers: ['reviewer1', 'reviewer2']
     })
   })
-  */
 })
 
 describe('test upstream-to-pr requestReviewers', () => {
@@ -465,13 +468,11 @@ describe('test upstream-to-pr requestReviewers', () => {
   it('reviewer list', async () => {
     const reviewers = ['reviewer1', 'reviewer2']
     const team_reviewers: string[] = []
-    const reviewersLine = `Reviewers requested for pull request: ${requestReviewersArgs.url}. Reviewers: ${reviewers}, team_reviewers: ${team_reviewers}`
     await new UpstreamToPr({
       ...defaultOptions,
       reviewers
     }).requestReviewers(requestReviewersArgs)
-    expect(mInfo).toBeCalledTimes(1)
-    expect(mInfo).toHaveBeenNthCalledWith(1, reviewersLine)
+    expect(mInfo).toBeCalledTimes(0)
     expect(requestReviewerMock).toHaveBeenCalledWith({
       owner: 'xxx',
       repo: undefined,
@@ -482,13 +483,11 @@ describe('test upstream-to-pr requestReviewers', () => {
   it('team reviewer list', async () => {
     const reviewers: string[] = []
     const team_reviewers = ['team1', 'team2']
-    const reviewersLine = `Reviewers requested for pull request: ${requestReviewersArgs.url}. Reviewers: ${reviewers}, team_reviewers: ${team_reviewers}`
     await new UpstreamToPr({
       ...defaultOptions,
       team_reviewers
     }).requestReviewers(requestReviewersArgs)
-    expect(mInfo).toBeCalledTimes(1)
-    expect(mInfo).toHaveBeenNthCalledWith(1, reviewersLine)
+    expect(mInfo).toBeCalledTimes(0)
     expect(requestReviewerMock).toHaveBeenCalledWith({
       owner: 'xxx',
       repo: undefined,
