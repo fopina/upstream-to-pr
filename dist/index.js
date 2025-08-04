@@ -51,8 +51,16 @@ function run() {
             const upstreamBranch = core.getInput('upstream-branch') || 'main';
             const upstreamTag = core.getInput('upstream-tag');
             const keepOld = core.getBooleanInput('keep-old');
-            const reviewers = core.getInput('reviewers').split(',');
-            const team_reviewers = core.getInput('team_reviewers').split(',');
+            const reviewers = core
+                .getInput('reviewers')
+                .split(',')
+                .map(s => s.trim())
+                .filter(s => s);
+            const team_reviewers = core
+                .getInput('team_reviewers')
+                .split(',')
+                .map(s => s.trim())
+                .filter(s => s);
             // github.context does not expose REF_NAME nor HEAD_REF, just use env...
             // try GITHUB_HEAD_REF (set if it is a PR) and fallback to GITHUB_REF_NAME
             const currentBranch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || '';
@@ -186,7 +194,7 @@ ${changeList}` }));
             core.setOutput('pull-request-url', pullRequest.url);
             if (this.options.reviewers.length > 0 ||
                 this.options.team_reviewers.length > 0) {
-                core.info(`Requesting reviewers for pull request: ${pullRequest.url}.`);
+                core.info(`Requesting reviewers for pull request: ${pullRequest.url}. Reviewers: ${this.options.reviewers}, team_reviewers: ${this.options.team_reviewers}`);
                 yield this.requestReviewers(pullRequest);
             }
         });
@@ -205,7 +213,6 @@ ${changeList}` }));
                 review_payload['team_reviewers'] = team_reviewers;
             }
             yield octokit.rest.pulls.requestReviewers(Object.assign(Object.assign(Object.assign({}, context.repo), { pull_number: pullRequest.number }), review_payload));
-            core.info(`Reviewers requested for pull request: ${pullRequest.url}. Reviewers: ${reviewers}, team_reviewers: ${team_reviewers}`);
         });
     }
     fetchHEAD() {
