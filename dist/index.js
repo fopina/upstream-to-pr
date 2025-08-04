@@ -184,11 +184,15 @@ class UpstreamToPr {
 ${changeList}` }));
             core.info(`Pull request created: ${pullRequest.url}.`);
             core.setOutput('pull-request-url', pullRequest.url);
-            if (this.options.reviewers.length > 0 ||
-                this.options.team_reviewers.length > 0) {
-                core.info(`Requesting reviewers for pull request: ${pullRequest.url}.`);
-                yield this.requestReviewers(pullRequest);
+            /*
+            if (
+              this.options.reviewers.length > 0 ||
+              this.options.team_reviewers.length > 0
+            ) {
+              core.info(`Requesting reviewers for pull request: ${pullRequest.url}.`)
+              await this.requestReviewers(pullRequest as PullRequest)
             }
+            */
         });
     }
     requestReviewers(pullRequest) {

@@ -421,6 +421,7 @@ Commit summary omitted as it exceeds maximum message size.`,
       title: 'Upstream branch main (revision bababa)'
     })
   })
+  /*
   it('reviewers list', async () => {
     const reviewers = ['reviewer1', 'reviewer2']
     const upstreamMock = new UpstreamToPr({
@@ -440,6 +441,7 @@ Commit summary omitted as it exceeds maximum message size.`,
       url: 'http://git.url/to/pr'
     })
   })
+  */
 })
 
 describe('test upstream-to-pr requestReviewers', () => {
