@@ -109,6 +109,7 @@ ${changeList}`
     core.info(`Pull request created: ${pullRequest.url}.`)
     core.setOutput('pull-request-url', pullRequest.url)
 
+    /*
     if (
       this.options.reviewers.length > 0 ||
       this.options.team_reviewers.length > 0
@@ -116,6 +117,7 @@ ${changeList}`
       core.info(`Requesting reviewers for pull request: ${pullRequest.url}.`)
       await this.requestReviewers(pullRequest as PullRequest)
     }
+    */
   }
 
   async requestReviewers(pullRequest: PullRequest): Promise<void> {
