@@ -11,7 +11,7 @@ jobs:
   push_tag:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: update v1 to ${{  github.ref_name }}
         run: |
           git tag -f v1
