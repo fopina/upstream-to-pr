@@ -13,15 +13,21 @@ It doesn't try to merge.
 It doesn't replace anything.  
 It will open a pull-request and Github UI will allow you to merge it and resolve (simple) conflicts.
 
-To open the pull request, standard action `GITHUB_TOKEN` is not enough, so personal access token with enough access needs to be provided.
-
-As it inspects target branch history (in your fork) to check if there is anything new in upstream, it requires a full checkout: that means `full-depth: 0` with `actions/checkout`
-
-
-
 ## Usage
 
 See [action.yml](action.yml)
+
+### Github Token
+
+Standard action `GITHUB_TOKEN` (with proper configuration) would be enough to create pull request **BUT** it would not trigger other workflows on that PR (such as testing workflows).  
+Also, if the rebase contains changes to workflows themselves (or new ones), it would be blocked as that token does not have the `workflow` permission.
+
+You need to generate a personal access token with the following permissions (`secrets.PAT` in the examples below)
+* Contents: R/W
+* Workflows: R/W
+* Pull Requests: R/W
+
+**Also**, as it inspects target branch history (in your fork) to check if there is anything new in upstream, it requires a full checkout: that means `full-depth: 0` with `actions/checkout`
 
 ### Basic
 
